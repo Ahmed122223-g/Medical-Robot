@@ -1,0 +1,47 @@
+{
+    "last_reset_date": "2026-03-12",
+    "medications": {
+        "Glucophage XR 1000mg": {
+            "taken_today": false,
+            "last_taken": "2026-03-07T21:10:08.795412",
+            "is_active": true,
+            "calculated_dose": null,
+            "calculation_sugar": null
+        },
+        "Concor 5mg": {
+            "taken_today": false,
+            "last_taken": null,
+            "is_active": true,
+            "calculated_dose": null,
+            "calculation_sugar": null
+        },
+        "Zestril 10mg": {
+            "taken_today": false,
+            "last_taken": null,
+            "is_active": true,
+            "calculated_dose": null,
+            "calculation_sugar": null
+        },
+        "Ator 20mg": {
+            "taken_today": false,
+            "last_taken": null,
+            "is_active": true,
+            "calculated_dose": null,
+            "calculation_sugar": null
+        },
+        "Aspirin Protect 100mg": {
+            "taken_today": false,
+            "last_taken": null,
+            "is_active": true,
+            "calculated_dose": null,
+            "calculation_sugar": null
+        },
+        "Lantus SoloStar": {
+            "taken_today": false,
+            "last_taken": null,
+            "is_active": true,
+            "calculated_dose": null,
+            "calculation_sugar": null
+        }
+    }
+}

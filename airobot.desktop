@@ -1,0 +1,9 @@
+[Desktop Entry]
+Name=AI Robot OS
+Comment=نظام تشغيل الروبوت الطبي الذكي
+Exec=/home/pi/mariam_pro/AI/venv/bin/python /home/pi/mariam_pro/AI/main.py
+Icon=/home/pi/mariam_pro/AI/assets/icons/app_icon.png
+Terminal=false
+Type=Application
+Categories=Medical;Utility;
+Path=/home/pi/mariam_pro/AI

@@ -1,0 +1,22 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+venv/
+.env
+
+# GUI/App
+*.log
+data/db.json
+assets/temp/
+
+# Desktop/OS
+.DS_Store
+Thumbs.db
+
+# Audio/Temporary
+*.mp3
+*.wav
+*.png
+*.jpg
+temp_*.png
