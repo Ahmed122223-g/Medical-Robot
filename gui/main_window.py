@@ -73,6 +73,8 @@ class MainWindow(ctk.CTk):
         # Global binding for on-screen keyboard
         self.bind_all("<FocusIn>", self._handle_widget_focus)
         
+        self._create_layout()
+        
         self.after(100, self._start_services_async)
         
         self.show_screen("home")
