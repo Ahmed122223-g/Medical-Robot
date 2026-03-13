@@ -67,7 +67,7 @@ sudo apt install -y libcamera-apps  # للكاميرا الجديدة
 ```
 
 ### 2. ⚠️ هام جداً: تثبيت محرك الصوت Offline (espeak)
-النظام يستخدم `espeak` للنطق بدون إنترنت. هذا ضروري جداً:
+النظام يستخدم `espeak` للنطق بدون إنترنت. هذا ضروري جداً: 
 ```bash
 sudo apt install -y espeak espeak-ng
 ```
