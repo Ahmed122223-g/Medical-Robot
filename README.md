@@ -44,86 +44,26 @@
 
 ---
 
-## 🛠️ دليل التجهيز من الألف إلى الياء (Raspberry Pi 4B)
+## 🛠️ دليل التجهيز (Raspberry Pi 4B)
 
-هذا الدليل مخصص لتجهيز نظام التشغيل والبيئة البرمجية والعتاد الصلب بالكامل.
+للحصول على أفضل أداء وتجربة مستخدم، يرجى اتباع الدليل الكامل المخصص للراسبري باي:
 
-### 1️⃣ المكونات المطلوبة (Hardware)
-- **Raspberry Pi 4B** (يفضل رامات 4 جيجا أو أكثر).
-- **كاميرا Raspberry Pi** (V2 أو V3).
-- **شاشة لمس** (7 بوصة أو HDMI).
-- **Arduino Uno/Nano** + حساسات (نبض، حرارة، ضغط).
-- **بطاقة ذاكرة (Micro SD)** سعة 16 جيجا على الأقل.
-- **مزود طاقة** 5V 3A (Type-C).
+👉 **[دليل تثبيت وتشغيل Raspberry Pi 4B](raspberry_pi_guide.md)**
 
-### 2️⃣ تجهيز نظام التشغيل (OS)
-1. قم بتحميل **Raspberry Pi Imager** على جهاز الكمبيوتر الخاص بك.
-2. اختر نظام التشغيل: **Raspberry Pi OS (64-bit)**.
-3. قم بضبط الإعدادات المتقدمة (اسم الجهاز، كلمة المرور، تفعيل SSH، إعدادات الواي فاي).
-4. قم بحرق النظام على بطاقة الذاكرة وقم بإدخالها في الراسبري باي.
+### مقتطف من خطوات التثبيت:
 
-### 3️⃣ إعدادات النظام الأساسية
-بعد فتح الراسبري باي، افتح Terminal ونفذ التالي:
 ```bash
-# تحديث النظام
-sudo apt update && sudo apt upgrade -y
+# 1. تحميل المشروع
+git clone https://github.com/Ahmed122223-g/Medical-Robot.git
+cd Medical-Robot
 
-# تفعيل الكاميرا وواجهات التواصل
-sudo raspi-config
-# انتقل إلى Interface Options ثم قم بتفعيل:
-# - I2C
-# - SPI
-# - Camera
-```
-
-### 4️⃣ تثبيت المشروع والبيئة البرمجية
-```bash
-# الانتقال لمجلد البيت
-cd /home/pi
-
-# تحميل ملفات المشروع
-git clone <repository-url> mariam_pro
-cd mariam_pro/AI
-
-# إنشاء البيئة الافتراضية
+# 2. إنشاء البيئة وتثبيت المكتبات
 python3 -m venv venv
 source venv/bin/activate
-
-# تثبيت المكتبات اللازمة
-# ملاحظة: قد تحتاج لتثبيت مكتبات النظام لبعض ملفات OpenCV
-sudo apt install -y libatlas-base-dev libhdf5-dev libqt5gui5 libqt5test5
 pip install -r requirements.txt
 ```
 
-### 5️⃣ إعداد مفاتيح API
-1. انسخ ملف الإعدادات المثال: `cp .env.example .env`
-2. حرر الملف: `nano .env`
-3. أضف مفاتيحك الخاصة لكل من:
-   - `GEMINI_API_KEY` (من Google AI Studio)
-   - `ELEVENLABS_API_KEY` (من ElevenLabs للصوت)
-   - `GROQ_API_KEY` (اختياري للشات بوت السريع)
-
-### 6️⃣ ربط الأردوينو (Arduino)
-1. قم برفع كود الأردوينو الموجود في مجلد `AI/core/arduino_code` (إن وجد) أو استخدم المثال في قسم إعداد الأردوينو بالأسفل.
-2. تأكد من توصيل الأردوينو عبر منفذ USB بالراسبري باي.
-3. تأكد من ضبط المنفذ في ملف `.env` (غالباً `/dev/ttyUSB0` أو `/dev/ttyACM0`).
-
-### 7️⃣ التشغيل التلقائي الفوري (Instant Autostart)
-لجعل البرنامج يعمل بمجرد تشغيل الشاشة وبدون تدخل منك:
-1. سكريبت `install.sh` يقوم تلقائياً بوضع ملف `airobot.desktop` في مجلد `~/.config/autostart/`.
-2. تأكد من تفعيل **Auto-login** في إعدادات الراسبري باي:
-   ```bash
-   sudo raspi-config
-   # System Options -> Boot / Auto Login -> Desktop Autologin
-   ```
-3. عند إعادة التشغيل، ستفتح الواجهة البرمجية فوراً بعد تحميل سطح المكتب.
-
-### 8️⃣ التشغيل كخدمة خلفية (اختياري)
-إذا أردت تشغيله كخدمة نظام (Systemd):
-```bash
-sudo systemctl enable airobot.service
-sudo systemctl start airobot.service
-```
+---
 
 ---
 
@@ -259,20 +199,3 @@ ls /dev/ttyACM*
 
 MIT License - راجع ملف LICENSE للتفاصيل
 
----
-
-## 👥 المساهمة
-
-نرحب بالمساهمات! يرجى فتح Issue أو Pull Request.
-
----
-
-## 📞 الدعم
-
-للأسئلة أو المشاكل، يرجى فتح Issue في GitHub.
-
----
-
-<p align="center">
-  صنع بـ ❤️ لخدمة المرضى
-</p>
