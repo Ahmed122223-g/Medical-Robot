@@ -41,7 +41,7 @@ class ChatBubble(ctk.CTkFrame):
             text_color=COLORS["text_white"] if is_user else COLORS["text_primary"],
             anchor="e" if is_user else "w",
             justify="right" if is_user else "left",
-            wraplength=420
+            wraplength=320
         )
         self.message_label.pack(padx=20, pady=12)
         

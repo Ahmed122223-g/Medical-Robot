@@ -38,10 +38,17 @@ class HomeScreen(ctk.CTkFrame):
     
     def _create_layout(self):
         self.grid_columnconfigure(0, weight=1)
-        self.grid_rowconfigure(0, weight=0)
-        self.grid_rowconfigure(1, weight=0)
-        self.grid_rowconfigure(2, weight=0)
-        self.grid_rowconfigure(3, weight=1)
+        self.grid_rowconfigure(0, weight=1)
+        
+        # Main scrollable container
+        self.scroll_container = ctk.CTkScrollableFrame(
+            self,
+            fg_color="transparent",
+            scrollbar_button_color=COLORS["bg_tertiary"],
+            scrollbar_button_hover_color=COLORS["primary"]
+        )
+        self.scroll_container.grid(row=0, column=0, sticky="nsew")
+        self.scroll_container.grid_columnconfigure(0, weight=1)
         
         self._create_header()
         self._create_vitals_section()
@@ -50,11 +57,10 @@ class HomeScreen(ctk.CTkFrame):
     
     def _create_header(self):
         self.header_frame = ctk.CTkFrame(
-            self,
-            fg_color="transparent",
-            height=100
+            self.scroll_container,
+            fg_color="transparent"
         )
-        self.header_frame.grid(row=0, column=0, sticky="ew", padx=20, pady=(20, 10))
+        self.header_frame.grid(row=0, column=0, sticky="ew", padx=20, pady=(10, 5))
         self.header_frame.grid_columnconfigure(0, weight=1)
         self.header_frame.grid_columnconfigure(1, weight=1)
         
@@ -102,10 +108,10 @@ class HomeScreen(ctk.CTkFrame):
     
     def _create_vitals_section(self):
         self.vitals_frame = ctk.CTkFrame(
-            self,
+            self.scroll_container,
             fg_color="transparent"
         )
-        self.vitals_frame.grid(row=1, column=0, sticky="ew", padx=20, pady=10)
+        self.vitals_frame.grid(row=1, column=0, sticky="ew", padx=20, pady=5)
         
         self.vitals_title = ctk.CTkLabel(
             self.vitals_frame,
@@ -163,10 +169,10 @@ class HomeScreen(ctk.CTkFrame):
     
     def _create_quick_actions(self):
         self.actions_frame = ctk.CTkFrame(
-            self,
+            self.scroll_container,
             fg_color="transparent"
         )
-        self.actions_frame.grid(row=2, column=0, sticky="ew", padx=20, pady=10)
+        self.actions_frame.grid(row=2, column=0, sticky="ew", padx=20, pady=5)
         
         self.actions_title = ctk.CTkLabel(
             self.actions_frame,
@@ -215,13 +221,13 @@ class HomeScreen(ctk.CTkFrame):
 
     def _create_alerts_section(self):
         self.alerts_frame = ctk.CTkFrame(
-            self,
+            self.scroll_container,
             fg_color=COLORS["bg_card"],
             corner_radius=RADIUS["xl"],
             border_width=2,
             border_color=COLORS["border_light"]
         )
-        self.alerts_frame.grid(row=3, column=0, sticky="nsew", padx=20, pady=(10, 20))
+        self.alerts_frame.grid(row=3, column=0, sticky="ew", padx=20, pady=(5, 20))
         
         self.alerts_title = ctk.CTkLabel(
             self.alerts_frame,

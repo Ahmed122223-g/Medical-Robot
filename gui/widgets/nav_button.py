@@ -115,17 +115,17 @@ class SidebarNav(ctk.CTkFrame):
         self.logo_frame = ctk.CTkFrame(
             self,
             fg_color="transparent",
-            height=80
+            height=60
         )
-        self.logo_frame.grid(row=0, column=0, sticky="ew", padx=15, pady=20)
+        self.logo_frame.grid(row=0, column=0, sticky="ew", padx=10, pady=(15, 10))
         self.logo_frame.grid_propagate(False)
         
         self.logo_icon = ctk.CTkLabel(
             self.logo_frame,
             text="🤖",
-            font=(FONTS["family"], 40),
+            font=(FONTS["family"], 30),
         )
-        self.logo_icon.pack(side="right", padx=10)
+        self.logo_icon.pack(side="right", padx=5)
         
         self.logo_text = ctk.CTkLabel(
             self.logo_frame,

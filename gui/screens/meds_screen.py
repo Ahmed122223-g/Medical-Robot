@@ -285,12 +285,21 @@ class MedsScreen(ctk.CTkFrame):
     
     def _create_layout(self):
         self.grid_columnconfigure(0, weight=1)
-        self.grid_columnconfigure(1, weight=1)
-        self.grid_rowconfigure(0, weight=0)
-        self.grid_rowconfigure(1, weight=1)
+        self.grid_rowconfigure(0, weight=1)
         
-        self.title_frame = ctk.CTkFrame(self, fg_color="transparent")
-        self.title_frame.grid(row=0, column=0, columnspan=2, sticky="ew", padx=20, pady=(20, 10))
+        # Main scrollable container
+        self.scroll_container = ctk.CTkScrollableFrame(
+            self,
+            fg_color="transparent",
+            scrollbar_button_color=COLORS["bg_tertiary"],
+            scrollbar_button_hover_color=COLORS["primary"]
+        )
+        self.scroll_container.grid(row=0, column=0, sticky="nsew")
+        self.scroll_container.grid_columnconfigure(0, weight=1)
+        self.scroll_container.grid_columnconfigure(1, weight=1)
+        
+        self.title_frame = ctk.CTkFrame(self.scroll_container, fg_color="transparent")
+        self.title_frame.grid(row=0, column=0, columnspan=2, sticky="ew", padx=20, pady=(15, 5))
         
         self.title_label = ctk.CTkLabel(
             self.title_frame,
@@ -316,11 +325,11 @@ class MedsScreen(ctk.CTkFrame):
     
     def _create_medications_list(self):
         self.meds_frame = ctk.CTkFrame(
-            self,
+            self.scroll_container,
             fg_color=COLORS["bg_card"],
             corner_radius=RADIUS["lg"]
         )
-        self.meds_frame.grid(row=1, column=1, sticky="nsew", padx=(10, 20), pady=10)
+        self.meds_frame.grid(row=1, column=1, sticky="nsew", padx=(5, 20), pady=10)
         
         header_frame = ctk.CTkFrame(self.meds_frame, fg_color="transparent")
         header_frame.pack(fill="x", padx=20, pady=(15, 10))
@@ -373,10 +382,10 @@ class MedsScreen(ctk.CTkFrame):
     
     def _create_insulin_section(self):
         self.insulin_frame = ctk.CTkFrame(
-            self,
+            self.scroll_container,
             fg_color="transparent"
         )
-        self.insulin_frame.grid(row=1, column=0, sticky="nsew", padx=(20, 10), pady=10)
+        self.insulin_frame.grid(row=1, column=0, sticky="nsew", padx=(20, 5), pady=10)
         
         self.insulin_frame.grid_rowconfigure(0, weight=0)
         self.insulin_frame.grid_rowconfigure(1, weight=1)

@@ -47,8 +47,8 @@ class FoodScreen(ctk.CTkFrame):
         self._create_layout()
     
     def _create_layout(self):
-        self.grid_columnconfigure(0, weight=5)
-        self.grid_columnconfigure(1, weight=2)
+        self.grid_columnconfigure(0, weight=1)
+        self.grid_columnconfigure(1, weight=1)
         self.grid_rowconfigure(0, weight=0)
         self.grid_rowconfigure(1, weight=1)
         
@@ -326,7 +326,7 @@ class FoodScreen(ctk.CTkFrame):
                 font=(FONTS["family"], FONTS["size_md"]),
                 text_color=COLORS["text_secondary"],
                 anchor="e",
-                wraplength=450
+                wraplength=350
             ).pack(anchor="e", pady=10, padx=5)
         
         self._add_nutrition_section(result)
@@ -480,7 +480,7 @@ class FoodScreen(ctk.CTkFrame):
                         font=(FONTS["family"], FONTS["size_sm"]),
                         text_color=COLORS["text_secondary"],
                         anchor="e",
-                        wraplength=400
+                        wraplength=300
                     ).pack(anchor="e", padx=20, pady=2)
             
             ctk.CTkLabel(warning_frame, text="", height=10).pack()
