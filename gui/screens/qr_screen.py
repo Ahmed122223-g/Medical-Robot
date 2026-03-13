@@ -42,8 +42,9 @@ class QRCodeScreen(ctk.CTkFrame):
         
         self.setup_inputs()
         
-        self.qr_frame = ctk.CTkFrame(self.scroll_container, fg_color="transparent")
-        self.qr_frame.grid(row=0, column=1, sticky="nsew", padx=20, pady=20)
+        # QR Frame - centered in its column
+        self.qr_frame = ctk.CTkFrame(self.scroll_container, fg_color=COLORS["bg_card"], corner_radius=RADIUS["lg"], border_width=1, border_color=COLORS["border"])
+        self.qr_frame.grid(row=0, column=1, sticky="n", padx=20, pady=20) # sticky="n" to keep it at top and centered horizontally
         
         self.setup_qr_display()
 
@@ -90,11 +91,16 @@ class QRCodeScreen(ctk.CTkFrame):
         self.generate_btn.pack(pady=30, fill="x")
 
     def setup_qr_display(self):
-        self.qr_title = ctk.CTkLabel(self.qr_frame, text=_("امسح الرمز لفتح الملف"), font=(FONTS["family"], 18))
-        self.qr_title.pack(pady=20)
+        self.qr_title = ctk.CTkLabel(self.qr_frame, text=_("امسح الرمز لفتح الملف"), font=(FONTS["family"], 18, "bold"))
+        self.qr_title.pack(pady=(20, 10), padx=20)
         
-        self.qr_image_label = ctk.CTkLabel(self.qr_frame, text=_("لم يتم التوليد بعد"), width=250, height=250, fg_color="#333", corner_radius=10)
-        self.qr_image_label.pack(expand=True)
+        # Fixed size container for the QR code to ensure centering
+        self.qr_container = ctk.CTkFrame(self.qr_frame, fg_color="#ffffff", corner_radius=RADIUS["md"], width=220, height=220)
+        self.qr_container.pack(pady=10, padx=20)
+        self.qr_container.pack_propagate(False)
+        
+        self.qr_image_label = ctk.CTkLabel(self.qr_container, text=_("لم يتم التوليد بعد"), text_color="#333333", font=(FONTS["family"], 12))
+        self.qr_image_label.pack(expand=True, fill="both")
         
         self.link_label = ctk.CTkLabel(self.qr_frame, text=self.base_url, font=("Cairo", 12), text_color="#3b82f6", cursor="hand2")
         self.link_label.pack(pady=10)
@@ -167,6 +173,7 @@ class QRCodeScreen(ctk.CTkFrame):
         img_buffer.seek(0)
         pil_img = Image.open(img_buffer)
         
-        ctk_img = ctk.CTkImage(light_image=pil_img, dark_image=pil_img, size=(250, 250))
-        self.qr_image_label.configure(image=ctk_img, text="")
+        # Scale to fit standard scanners and screen
+        ctk_img = ctk.CTkImage(light_image=pil_img, dark_image=pil_img, size=(200, 200))
+        self.qr_image_label.configure(image=ctk_img, text="", fg_color="transparent")
         self.link_label.configure(text=_("اضغط لفتح الرابط"))
