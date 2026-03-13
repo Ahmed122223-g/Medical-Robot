@@ -282,6 +282,26 @@ class MainWindow(ctk.CTk):
         current = self.attributes("-fullscreen")
         self.attributes("-fullscreen", not current)
     
+    def _handle_widget_focus(self, event):
+        """Handle focus events to show the on-screen keyboard"""
+        try:
+            widget = event.widget
+            
+            # Check if the widget is a CTkEntry or CTkTextbox
+            if isinstance(widget, (ctk.CTkEntry, ctk.CTkTextbox)):
+                # If a keyboard is already open for THIS widget, don't reopen
+                if self.keyboard_window and self.keyboard_window.winfo_exists():
+                    if hasattr(self.keyboard_window, 'target') and self.keyboard_window.target == widget:
+                        return
+                    self.keyboard_window.destroy()
+                
+                # Show the new keyboard
+                from gui.widgets.keyboard import show_keyboard
+                self.keyboard_window = show_keyboard(self, widget)
+        except Exception as e:
+            if config.DEBUG_MODE:
+                print(f"⚠️ Focus handler error: {e}")
+    
     def _init_voice_assistant(self):
         voice_assistant.set_command_callback(self._on_voice_command)
         voice_assistant.set_speech_callback(self._on_voice_speech)
