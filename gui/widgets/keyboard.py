@@ -2,19 +2,20 @@
 AI Robot Operating System - Virtual Keyboard Widget
 نظام تشغيل الروبوت الطبي الذكي - لوحة المفاتيح الافتراضية
 
-A custom on-screen keyboard for touchscreens.
-لوحة مفاتيح افتراضية مخصصة لشاشات اللمس.
+A professional on-screen keyboard for touchscreens.
+لوحة مفاتيح افتراضية مخصصة واحترافية لشاشات اللمس.
 """
 
 import customtkinter as ctk
 from typing import Optional, Union
 import sys
+import os
 
 # Add project root to path
-import os
 sys.path.append(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
 
 from gui.styles.theme import COLORS, FONTS, RADIUS
+from core.arabic_utils import fix_arabic as _
 
 class VirtualKeyboard(ctk.CTkToplevel):
     """
@@ -26,76 +27,82 @@ class VirtualKeyboard(ctk.CTkToplevel):
         super().__init__(master, **kwargs)
         
         self.target = target_widget
-        self.language = "ar" # Default to Arabic
+        self.language = "ar" 
         self.is_shift = False
         
         # Window configuration
         self.title("Keyboard")
         self.attributes("-topmost", True)
-        self.overrideredirect(True) # Remove title bar for a cleaner look
+        self.overrideredirect(True) 
         
         # Styling
         self.configure(fg_color=COLORS["bg_secondary"])
         
-        # Position at the bottom of the screen
+        # Optimized size for 800x480 screen
         screen_width = self.winfo_screenwidth()
         screen_height = self.winfo_screenheight()
         
-        # Default size for 800x480
-        width = 780
-        height = 280
+        width = 790
+        height = 220 # Reduced height for more screen visibility
         x = (screen_width - width) // 2
-        y = screen_height - height - 10
+        y = screen_height - height - 5
         
         self.geometry(f"{width}x{height}+{x}+{y}")
         
         self._create_layout()
         
     def _create_layout(self):
-        # Container with border
+        # Container with subtle border
         self.main_frame = ctk.CTkFrame(
             self,
-            fg_color=COLORS["bg_card"],
-            corner_radius=RADIUS["lg"],
-            border_width=2,
-            border_color=COLORS["primary"]
+            fg_color=COLORS["bg_sidebar"],
+            corner_radius=RADIUS["md"],
+            border_width=1,
+            border_color=COLORS["border"]
         )
         self.main_frame.pack(fill="both", expand=True, padx=2, pady=2)
         
-        # Top bar with Close button
-        self.top_bar = ctk.CTkFrame(self.main_frame, fg_color="transparent", height=40)
-        self.top_bar.pack(fill="x", padx=10, pady=(5, 0))
+        # Top handle/bar
+        self.top_bar = ctk.CTkFrame(self.main_frame, fg_color="transparent", height=30)
+        self.top_bar.pack(fill="x", padx=10, pady=(2, 0))
+        
+        # Drag handle (aesthetic)
+        handle = ctk.CTkFrame(self.top_bar, fg_color=COLORS["border"], width=40, height=4, corner_radius=2)
+        handle.place(relx=0.5, rely=0.5, anchor="center")
         
         self.lang_btn = ctk.CTkButton(
             self.top_bar,
-            text="English" if self.language == "ar" else "العربية",
-            width=80,
-            height=30,
-            font=(FONTS["family"], FONTS["size_sm"]),
+            text=_("English") if self.language == "ar" else "العربية",
+            width=70,
+            height=24,
+            font=(FONTS["family"], 11),
+            fg_color=COLORS["bg_tertiary"],
+            text_color=COLORS["text_secondary"],
             command=self._toggle_language
         )
         self.lang_btn.pack(side="left")
         
         self.close_btn = ctk.CTkButton(
             self.top_bar,
-            text="❌",
-            width=40,
-            height=30,
-            fg_color=COLORS["danger"],
-            hover_color=COLORS["danger_hover"],
+            text="✕",
+            width=30,
+            height=24,
+            fg_color="transparent",
+            text_color=COLORS["text_muted"],
+            hover_color=COLORS["danger"],
             command=self.destroy
         )
         self.close_btn.pack(side="right")
         
         # Keyboard grid
         self.keys_frame = ctk.CTkFrame(self.main_frame, fg_color="transparent")
-        self.keys_frame.pack(fill="both", expand=True, padx=10, pady=10)
+        self.keys_frame.pack(fill="both", expand=True, padx=5, pady=(2, 5))
         
         self._draw_keys()
         
     def _toggle_language(self):
         self.language = "en" if self.language == "ar" else "ar"
-        self.lang_btn.configure(text="English" if self.language == "ar" else "العربية")
+        self.lang_btn.configure(text=_("English") if self.language == "ar" else "العربية")
         self._draw_keys()
         
     def _draw_keys(self):
@@ -108,7 +115,7 @@ class VirtualKeyboard(ctk.CTkToplevel):
                 ["١", "٢", "٣", "٤", "٥", "٦", "٧", "٨", "٩", "٠"],
                 ["ض", "ص", "ث", "ق", "ف", "غ", "ع", "ه", "خ", "ح", "ج", "د"],
                 ["ش", "س", "ي", "ب", "ل", "ا", "ت", "ن", "م", "ك", "ط"],
-                ["☁️", "ئ", "ء", "ؤ", "ر", "لا", "ى", "ة", "و", "ز", "ظ", "⌫"],
+                ["ئ", "ء", "ؤ", "ر", "لا", "ى", "ة", "و", "ز", "ظ", "⌫"],
                 ["١٢٣", "مسافة", "إدخال"]
             ],
             "en": [
@@ -130,37 +137,40 @@ class VirtualKeyboard(ctk.CTkToplevel):
                 self._create_key(row_frame, key)
                 
     def _create_key(self, parent, text):
-        # Special styling for action keys
-        is_action = text in ["⌫", "إدخال", "Enter", "مسافة", "Space", "⇧", "١٢٣", "?123", "☁️"]
+        is_action = text in ["⌫", "إدخال", "Enter", "مسافة", "Space", "⇧", "١٢٣", "?123"]
         
-        width = 40
+        width = 35
         if text in ["مسافة", "Space"]:
-            width = 250
+            width = 300
         elif text in ["إدخال", "Enter"]:
-            width = 100
+            width = 120
         elif text in ["⌫", "⇧"]:
-            width = 60
+            width = 70
+            
+        # Use fix_arabic only for Arabic key labels
+        display_text = _(text) if self.language == "ar" else text
             
         btn = ctk.CTkButton(
             parent,
-            text=text,
+            text=display_text,
             width=width,
-            height=45,
-            font=(FONTS["family"] if self.language == "ar" else FONTS["family_en"], FONTS["size_md"]),
+            height=32, # Reduced button height
+            font=(FONTS["family"] if self.language == "ar" else FONTS["family_en"], 14, "bold"),
             fg_color=COLORS["bg_tertiary"] if is_action else COLORS["bg_card"],
             text_color=COLORS["text_primary"],
+            hover_color=COLORS["primary"],
             border_width=1,
             border_color=COLORS["border"],
+            corner_radius=4,
             command=lambda k=text: self._on_key_press(k)
         )
-        btn.pack(side="left" if self.language == "en" else "right", padx=2, pady=2, expand=True if not is_action else False)
+        btn.pack(side="left" if self.language == "en" else "right", padx=1, pady=1, expand=True if not is_action else False)
         
     def _on_key_press(self, key):
         if not self.target:
             return
             
         if key in ["⌫"]:
-            # Backspace
             if isinstance(self.target, ctk.CTkEntry):
                 curr = self.target.get()
                 self.target.delete(0, 'end')
@@ -172,25 +182,16 @@ class VirtualKeyboard(ctk.CTkToplevel):
         elif key in ["مسافة", "Space"]:
             self.target.insert("insert", " ")
         elif key in ["إدخال", "Enter"]:
-            # Trigger enter event if possible
             self.target.event_generate("<Return>")
-            self.destroy() # Close on enter? Or keep open? Usually close.
+            self.destroy()
         elif key == "⇧":
             self.is_shift = not self.is_shift
             self._draw_keys()
-        elif key in ["١٢٣", "?123"]:
-            # Maybe symbols? For now just stay.
-            pass
-        elif key == "☁️":
-            # Shift for Arabic? (Symbols)
-            pass
         else:
-            # Normal char
             char = key
             if self.is_shift and self.language == "en":
                 char = char.upper()
             self.target.insert("insert", char)
 
 def show_keyboard(master, target):
-    """Utility to show keyboard - أداة مساعدة لإظهار لوحة المفاتيح"""
     return VirtualKeyboard(master, target)

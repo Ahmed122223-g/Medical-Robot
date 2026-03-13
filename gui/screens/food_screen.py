@@ -449,13 +449,13 @@ class FoodScreen(ctk.CTkFrame):
             
             ctk.CTkLabel(
                 header_frame,
-                text="⚠️ هذا الطعام غير مناسب",
+                text=_("⚠️ هذا الطعام غير مناسب"),
                 font=(FONTS["family"], FONTS["size_lg"], "bold"),
                 text_color="#ffffff",
                 anchor="center"
             ).pack(pady=10)
             
-            conditions_text = "غير مناسب لـ: " + " - ".join(unsuitable_conditions)
+            conditions_text = _("غير مناسب لـ: ") + " - ".join([_(c) for c in unsuitable_conditions])
             ctk.CTkLabel(
                 warning_frame,
                 text=conditions_text,
@@ -467,7 +467,7 @@ class FoodScreen(ctk.CTkFrame):
             if reasons:
                 ctk.CTkLabel(
                     warning_frame,
-                    text="📋 الأسباب:",
+                    text=_("📋 الأسباب:"),
                     font=(FONTS["family"], FONTS["size_md"], "bold"),
                     text_color=COLORS["text_primary"],
                     anchor="e"
@@ -477,7 +477,7 @@ class FoodScreen(ctk.CTkFrame):
                 for reason in unique_reasons[:5]:
                     ctk.CTkLabel(
                         warning_frame,
-                        text=f"• {reason}",
+                        text=_ (f"• {reason}"),
                         font=(FONTS["family"], FONTS["size_sm"]),
                         text_color=COLORS["text_secondary"],
                         anchor="e",
@@ -492,7 +492,7 @@ class FoodScreen(ctk.CTkFrame):
         
         ctk.CTkLabel(
             section_frame,
-            text="📊 المعلومات الغذائية",
+            text=_("📊 المعلومات الغذائية"),
             font=(FONTS["family"], FONTS["size_md"], "bold"),
             text_color=COLORS["text_primary"],
             anchor="e"

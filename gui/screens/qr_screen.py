@@ -14,63 +14,75 @@ except ImportError:
 
 from config import config
 from modules.vital_signs import vital_signs_monitor
+from gui.styles.theme import COLORS, FONTS, RADIUS
+from core.arabic_utils import fix_arabic as _
 
 class QRCodeScreen(ctk.CTkFrame):
     def __init__(self,parent, **kwargs):
-        super().__init__(parent, **kwargs)
+        super().__init__(parent, fg_color="transparent", **kwargs)
         self.qr_image_label = None
         self.base_url = "https://medical-robot.netlify.app/"
         
         self.grid_columnconfigure(0, weight=1)
-        self.grid_columnconfigure(1, weight=1)
         self.grid_rowconfigure(0, weight=1)
         
-        self.input_frame = ctk.CTkFrame(self, fg_color="transparent")
+        # Main scrollable container
+        self.scroll_container = ctk.CTkScrollableFrame(
+            self,
+            fg_color="transparent",
+            scrollbar_button_color=COLORS["bg_tertiary"],
+            scrollbar_button_hover_color=COLORS["primary"]
+        )
+        self.scroll_container.grid(row=0, column=0, sticky="nsew")
+        self.scroll_container.grid_columnconfigure(0, weight=1)
+        self.scroll_container.grid_columnconfigure(1, weight=1)
+        
+        self.input_frame = ctk.CTkFrame(self.scroll_container, fg_color="transparent")
         self.input_frame.grid(row=0, column=0, sticky="nsew", padx=20, pady=20)
         
         self.setup_inputs()
         
-        self.qr_frame = ctk.CTkFrame(self, fg_color="transparent")
+        self.qr_frame = ctk.CTkFrame(self.scroll_container, fg_color="transparent")
         self.qr_frame.grid(row=0, column=1, sticky="nsew", padx=20, pady=20)
         
         self.setup_qr_display()
 
     def setup_inputs(self):
-        title = ctk.CTkLabel(self.input_frame, text="بوابة المريض (QR)", font=("Cairo", 24, "bold"))
+        title = ctk.CTkLabel(self.input_frame, text=_("بوابة المريض (QR)"), font=(FONTS["family"], 24, "bold"))
         title.pack(pady=(0, 20))
         
         vitals_frame = ctk.CTkFrame(self.input_frame)
         vitals_frame.pack(fill="x", pady=10)
         
-        ctk.CTkLabel(vitals_frame, text="قراءات الأجهزة (تلقائي)", font=("Cairo", 16, "bold"), text_color="#3b82f6").pack(pady=10)
+        ctk.CTkLabel(vitals_frame, text=_("قراءات الأجهزة (تلقائي)"), font=(FONTS["family"], 16, "bold"), text_color="#3b82f6").pack(pady=10)
         
-        self.bp_label = ctk.CTkLabel(vitals_frame, text="ضغط الدم: --/--", font=("Cairo", 14))
+        self.bp_label = ctk.CTkLabel(vitals_frame, text=_("ضغط الدم: --/--"), font=(FONTS["family"], 14))
         self.bp_label.pack(pady=5)
         
-        self.temp_label = ctk.CTkLabel(vitals_frame, text="الحرارة: -- °C", font=("Cairo", 14))
+        self.temp_label = ctk.CTkLabel(vitals_frame, text=_("الحرارة: -- °C"), font=(FONTS["family"], 14))
         self.temp_label.pack(pady=5)
         
-        ctk.CTkButton(vitals_frame, text="تحديث القراءات", command=self.update_vitals_display, width=120).pack(pady=10)
+        ctk.CTkButton(vitals_frame, text=_("تحديث القراءات"), command=self.update_vitals_display, width=120).pack(pady=10)
         
         manual_frame = ctk.CTkFrame(self.input_frame)
         manual_frame.pack(fill="x", pady=20)
         
-        ctk.CTkLabel(manual_frame, text="إدخال يدوي", font=("Cairo", 16, "bold"), text_color="#f43f5e").pack(pady=10)
+        ctk.CTkLabel(manual_frame, text=_("إدخال يدوي"), font=(FONTS["family"], 16, "bold"), text_color="#f43f5e").pack(pady=10)
         
-        ctk.CTkLabel(manual_frame, text="مستوى السكر (mg/dL):", font=("Cairo", 14)).pack(pady=5)
-        self.sugar_entry = ctk.CTkEntry(manual_frame, placeholder_text="مثال: 120")
+        ctk.CTkLabel(manual_frame, text=_("مستوى السكر (mg/dL):"), font=(FONTS["family"], 14)).pack(pady=5)
+        self.sugar_entry = ctk.CTkEntry(manual_frame, placeholder_text=_("مثال: 120"))
         self.sugar_entry.pack(pady=5)
         self.sugar_entry.insert(0, "")
-        ctk.CTkLabel(manual_frame, text="الوزن (kg):", font=("Cairo", 14)).pack(pady=5)
-        self.weight_entry = ctk.CTkEntry(manual_frame, placeholder_text="مثال: 75")
+        ctk.CTkLabel(manual_frame, text=_("الوزن (kg):"), font=(FONTS["family"], 14)).pack(pady=5)
+        self.weight_entry = ctk.CTkEntry(manual_frame, placeholder_text=_("مثال: 75"))
         self.weight_entry.pack(pady=5)
         self.weight_entry.insert(0, "78")
         
         self.generate_btn = ctk.CTkButton(
             self.input_frame, 
-            text="توليد QR وتحديث الصفحة", 
+            text=_("توليد QR وتحديث الصفحة"), 
             command=self.generate_qr,
-            font=("Cairo", 16, "bold"),
+            font=(FONTS["family"], 16, "bold"),
             height=40,
             fg_color="#10b981", 
             hover_color="#059669"
@@ -78,10 +90,10 @@ class QRCodeScreen(ctk.CTkFrame):
         self.generate_btn.pack(pady=30, fill="x")
 
     def setup_qr_display(self):
-        self.qr_title = ctk.CTkLabel(self.qr_frame, text="امسح الرمز لفتح الملف", font=("Cairo", 18))
+        self.qr_title = ctk.CTkLabel(self.qr_frame, text=_("امسح الرمز لفتح الملف"), font=(FONTS["family"], 18))
         self.qr_title.pack(pady=20)
         
-        self.qr_image_label = ctk.CTkLabel(self.qr_frame, text="لم يتم التوليد بعد", width=250, height=250, fg_color="#333", corner_radius=10)
+        self.qr_image_label = ctk.CTkLabel(self.qr_frame, text=_("لم يتم التوليد بعد"), width=250, height=250, fg_color="#333", corner_radius=10)
         self.qr_image_label.pack(expand=True)
         
         self.link_label = ctk.CTkLabel(self.qr_frame, text=self.base_url, font=("Cairo", 12), text_color="#3b82f6", cursor="hand2")
@@ -90,8 +102,8 @@ class QRCodeScreen(ctk.CTkFrame):
 
     def update_vitals_display(self):
         vitals = vital_signs_monitor.get_current_vitals()
-        self.bp_label.configure(text=f"ضغط الدم: {vitals.systolic}/{vitals.diastolic} mmHg")
-        self.temp_label.configure(text=f"الحرارة: {vitals.temperature} °C")
+        self.bp_label.configure(text=_ (f"ضغط الدم: {vitals.systolic}/{vitals.diastolic} mmHg"))
+        self.temp_label.configure(text=_ (f"الحرارة: {vitals.temperature} °C"))
         
         self.bp_label.configure(text_color="#10b981")
         self.after(500, lambda: self.bp_label.configure(text_color=("black", "white")))
@@ -157,4 +169,4 @@ class QRCodeScreen(ctk.CTkFrame):
         
         ctk_img = ctk.CTkImage(light_image=pil_img, dark_image=pil_img, size=(250, 250))
         self.qr_image_label.configure(image=ctk_img, text="")
-        self.link_label.configure(text="اضغط لفتح الرابط")
+        self.link_label.configure(text=_("اضغط لفتح الرابط"))

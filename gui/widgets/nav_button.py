@@ -132,7 +132,7 @@ class SidebarNav(ctk.CTkFrame):
         
         self.logo_text = ctk.CTkLabel(
             self.logo_frame,
-            text="Medical Robot",
+            text=_("Medical Robot"),
             font=(FONTS["family_en"], FONTS["size_lg"], "bold"),
             text_color=COLORS["text_primary"],
         )

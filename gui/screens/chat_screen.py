@@ -213,7 +213,7 @@ class ChatScreen(ctk.CTkFrame):
         
         self.typing_label = ctk.CTkLabel(
             self.typing_bubble,
-            text="🤖 جاري الكتابة...",
+            text=_("🤖 جاري الكتابة..."),
             font=(FONTS["family"], FONTS["size_md"]),
             text_color=COLORS["text_muted"]
         )

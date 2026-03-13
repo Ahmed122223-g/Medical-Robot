@@ -195,7 +195,7 @@ class HomeScreen(ctk.CTkFrame):
 
         self.meds_btn = QuickActionButton(
             self.actions_container,
-            text="الأدوية",
+            text=_("الأدوية"),
             icon="💊",
             color=COLORS["warning"],
             command=lambda: self._navigate_to("meds")
@@ -204,7 +204,7 @@ class HomeScreen(ctk.CTkFrame):
 
         self.chat_btn = QuickActionButton(
             self.actions_container,
-            text="المحادثة",
+            text=_("المحادثة"),
             icon="💬",
             color=COLORS["primary"],
             command=lambda: self._navigate_to("chat")
@@ -213,7 +213,7 @@ class HomeScreen(ctk.CTkFrame):
 
         self.food_btn = QuickActionButton(
             self.actions_container,
-            text="تحليل الطعام",
+            text=_("تحليل الطعام"),
             icon="📷",
             color=COLORS["success"],
             command=lambda: self._navigate_to("food")
@@ -316,7 +316,7 @@ class HomeScreen(ctk.CTkFrame):
             self.bp_card.update_value(
                 bp["value"],
                 bp["unit"],
-                bp["status"]
+                _(bp["status"])
             )
         
         if "heart_rate" in vitals_data:
@@ -324,7 +324,7 @@ class HomeScreen(ctk.CTkFrame):
             self.hr_card.update_value(
                 hr["value"],
                 hr["unit"],
-                hr["status"]
+                _(hr["status"])
             )
         
         if "temperature" in vitals_data:
@@ -332,5 +332,5 @@ class HomeScreen(ctk.CTkFrame):
             self.temp_card.update_value(
                 temp["value"],
                 temp["unit"],
-                temp["status"]
+                _(temp["status"])
             )

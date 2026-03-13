@@ -406,7 +406,7 @@ class MedsScreen(ctk.CTkFrame):
         
         ctk.CTkLabel(
             self.schedule_frame,
-            text="📅 جدول المواعيد",
+            text=_("📅 جدول المواعيد"),
             font=(FONTS["family"], FONTS["size_lg"], "bold"),
             text_color=COLORS["text_primary"],
             anchor="e"
@@ -429,7 +429,7 @@ class MedsScreen(ctk.CTkFrame):
         if not upcoming:
             ctk.CTkLabel(
                 self.schedule_list,
-                text="لا توجد أدوية قادمة في الـ 24 ساعة القادمة",
+                text=_("لا توجد أدوية قادمة في الـ 24 ساعة القادمة"),
                 font=(FONTS["family"], FONTS["size_md"]),
                 text_color=COLORS["text_muted"]
             ).pack(pady=20)
