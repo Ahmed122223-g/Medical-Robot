@@ -19,7 +19,7 @@ source venv/bin/activate
 # 4. Install Python Requirements
 echo "📥 Installing python packages..."
 pip install --upgrade pip setuptools wheel
-pip install -r requirements.txt
+pip install -r requirements.txt --prefer-binary
 
 # 5. Setup Desktop Shortcut & Autostart
 echo "🖥️ Creating desktop shortcut and enabling autostart..."
