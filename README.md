@@ -107,43 +107,9 @@ AI/
 
 ## ⚙️ إعداد Arduino
 
-### البروتوكول المستخدم
+لشرح بروتوكول البيانات وكيفية برمجة الأردوينو للربط مع الروبوت:
 
-Arduino يرسل البيانات بالتنسيق التالي:
-
-```
-BP:120/80,HR:75,TEMP:36.5
-```
-
-حيث:
-
-- `BP`: ضغط الدم (انقباضي/انبساطي)
-- `HR`: نبضات القلب
-- `TEMP`: درجة الحرارة
-
-### مثال كود Arduino
-
-```cpp
-void loop() {
-    // Read sensors
-    int systolic = readBloodPressureSystolic();
-    int diastolic = readBloodPressureDiastolic();
-    int heartRate = readHeartRate();
-    float temperature = readTemperature();
-
-    // Send data
-    Serial.print("BP:");
-    Serial.print(systolic);
-    Serial.print("/");
-    Serial.print(diastolic);
-    Serial.print(",HR:");
-    Serial.print(heartRate);
-    Serial.print(",TEMP:");
-    Serial.println(temperature, 1);
-
-    delay(2000);
-}
-```
+👉 **[دليل إعداد وبرمجة Arduino](arduino_guide.md)**
 
 ---
 
