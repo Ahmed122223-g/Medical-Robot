@@ -30,6 +30,7 @@ from modules.vital_signs import vital_signs_monitor
 from modules.voice_assistant import voice_assistant
 from modules.voice_command_processor import voice_command_processor
 from modules.medication_reminder import medication_reminder
+from gui.widgets.keyboard import VirtualKeyboard
 
 
 class MainWindow(ctk.CTk):
@@ -65,8 +66,10 @@ class MainWindow(ctk.CTk):
         self.screens = {}
         self.current_screen = None
         self.voice_permission_granted = config.VOICE_ENABLED
+        self.keyboard_window = None
         
-        self._create_layout()
+        # Global binding for on-screen keyboard
+        self.bind_all("<FocusIn>", self._handle_widget_focus)
         
         self.after(100, self._start_services_async)
         
@@ -107,6 +110,34 @@ class MainWindow(ctk.CTk):
         self.content_frame.grid(row=0, column=1, sticky="nsew")
         self.content_frame.grid_columnconfigure(0, weight=1)
         self.content_frame.grid_rowconfigure(0, weight=1)
+        
+    def _handle_widget_focus(self, event):
+        """Global handler to trigger keyboard on focus - معالج عالمي لتفعيل الكيبورد"""
+        widget = event.widget
+        
+        # Check if the widget is an Entry or Textbox (or their internal components)
+        try:
+            # CustomTkinter widgets often have internal entry components
+            widget_parent = self.nametowidget(widget.winfo_parent())
+            
+            is_input = isinstance(widget, (ctk.CTkEntry, ctk.CTkTextbox)) or \
+                       isinstance(widget_parent, (ctk.CTkEntry, ctk.CTkTextbox))
+            
+            if is_input:
+                target = widget if isinstance(widget, (ctk.CTkEntry, ctk.CTkTextbox)) else widget_parent
+                self._open_virtual_keyboard(target)
+        except:
+            pass
+
+    def _open_virtual_keyboard(self, target):
+        """Open the virtual keyboard for a target widget - فتح الكيبورد للعنصر المستهدف"""
+        # Close existing if open
+        if self.keyboard_window and self.keyboard_window.winfo_exists():
+            if self.keyboard_window.target == target:
+                return # Already open for this widget
+            self.keyboard_window.destroy()
+            
+        self.keyboard_window = VirtualKeyboard(self, target_widget=target)
     
     def _create_sidebar(self):
         """Create sidebar navigation - إنشاء شريط التنقل الجانبي"""
