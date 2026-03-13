@@ -63,6 +63,7 @@ sudo apt install -y python3-venv python3-pip python3-tk
 sudo apt install -y libglib2.0-0 libgl1 libglx-mesa0 portaudio19-dev libespeak-dev ffmpeg
 sudo apt install -y libhdf5-dev libhdf5-serial-dev libopenjp2-7
 sudo apt install -y libjpeg-dev zlib1g-dev libfreetype6-dev liblcms2-dev libwebp-dev libharfbuzz-dev libfribidi-dev libxcb1-dev
+sudo apt install -y libsdl2-dev libsdl2-image-dev libsdl2-mixer-dev libsdl2-ttf-dev
 sudo apt install -y libcamera-apps  # للكاميرا الجديدة
 ```
 

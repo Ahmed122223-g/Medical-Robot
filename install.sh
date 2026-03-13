@@ -9,7 +9,7 @@ sudo apt update && sudo apt upgrade -y
 
 # 2. Install System Dependencies
 echo "📦 Installing system dependencies..."
-sudo apt install -y python3-venv python3-pip libglib2.0-0 libgl1 libglx-mesa0 libhdf5-dev libqt5gui5 libqt5test5 libavcodec-dev libavformat-dev libswscale-dev libv4l-dev libxvidcore-dev libx264-dev portaudio19-dev libjpeg-dev zlib1g-dev libfreetype6-dev liblcms2-dev libwebp-dev libharfbuzz-dev libfribidi-dev libxcb1-dev
+sudo apt install -y python3-venv python3-pip libglib2.0-0 libgl1 libglx-mesa0 libhdf5-dev libqt5gui5 libqt5test5 libavcodec-dev libavformat-dev libswscale-dev libv4l-dev libxvidcore-dev libx264-dev portaudio19-dev libjpeg-dev zlib1g-dev libfreetype6-dev liblcms2-dev libwebp-dev libharfbuzz-dev libfribidi-dev libxcb1-dev libsdl2-dev libsdl2-image-dev libsdl2-mixer-dev libsdl2-ttf-dev
 
 # 3. Create Virtual Environment
 echo "🐍 Creating virtual environment..."
