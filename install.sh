@@ -9,7 +9,7 @@ sudo apt update && sudo apt upgrade -y
 
 # 2. Install System Dependencies
 echo "📦 Installing system dependencies..."
-sudo apt install -y python3-venv python3-pip libglib2.0-0 libgl1 libglx-mesa0 libhdf5-dev libqt5gui5 libqt5test5 libavcodec-dev libavformat-dev libswscale-dev libv4l-dev libxvidcore-dev libx264-dev portaudio19-dev
+sudo apt install -y python3-venv python3-pip libglib2.0-0 libgl1 libglx-mesa0 libhdf5-dev libqt5gui5 libqt5test5 libavcodec-dev libavformat-dev libswscale-dev libv4l-dev libxvidcore-dev libx264-dev portaudio19-dev libjpeg-dev zlib1g-dev libfreetype6-dev liblcms2-dev libwebp-dev libharfbuzz-dev libfribidi-dev libxcb1-dev
 
 # 3. Create Virtual Environment
 echo "🐍 Creating virtual environment..."
@@ -18,7 +18,7 @@ source venv/bin/activate
 
 # 4. Install Python Requirements
 echo "📥 Installing python packages..."
-pip install --upgrade pip
+pip install --upgrade pip setuptools wheel
 pip install -r requirements.txt
 
 # 5. Setup Desktop Shortcut & Autostart
