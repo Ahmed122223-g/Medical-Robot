@@ -13,6 +13,7 @@ import sys
 
 sys.path.append('../..')
 from gui.styles.theme import COLORS, FONTS, RADIUS
+from core.arabic_utils import fix_arabic as _
 from modules.chatbot import chatbot, Message
 
 
@@ -36,7 +37,7 @@ class ChatBubble(ctk.CTkFrame):
         
         self.message_label = ctk.CTkLabel(
             self,
-            text=message,
+            text=_(message),
             font=(FONTS["family"], FONTS["size_md"]),
             text_color=COLORS["text_white"] if is_user else COLORS["text_primary"],
             anchor="e" if is_user else "w",
@@ -87,7 +88,7 @@ class ChatScreen(ctk.CTkFrame):
         
         self.title_label = ctk.CTkLabel(
             self.title_frame,
-            text="💬 المحادثة الذكية",
+            text=_("💬 المحادثة الذكية"),
             font=(FONTS["family"], FONTS["size_2xl"], "bold"),
             text_color=COLORS["text_primary"],
             anchor="e"
@@ -96,7 +97,7 @@ class ChatScreen(ctk.CTkFrame):
         
         self.clear_btn = ctk.CTkButton(
             self.title_frame,
-            text="🗑️ مسح المحادثة",
+            text=_("🗑️ مسح المحادثة"),
             font=(FONTS["family"], FONTS["size_sm"]),
             fg_color=COLORS["bg_tertiary"],
             hover_color=COLORS["danger"],

@@ -19,6 +19,7 @@ from gui.styles.theme import COLORS, FONTS, RADIUS
 from gui.widgets.vital_card import VitalCard
 from gui.widgets.nav_button import QuickActionButton
 from core.utils import get_arabic_date, get_arabic_time, get_time_of_day
+from core.arabic_utils import fix_arabic as _
 
 
 class HomeScreen(ctk.CTkFrame):
@@ -69,7 +70,7 @@ class HomeScreen(ctk.CTkFrame):
         
         self.greeting_label = ctk.CTkLabel(
             self.greeting_frame,
-            text=f"{get_time_of_day()}! 👋",
+            text=_(f"{get_time_of_day()}! 👋"),
             font=(FONTS["family"], FONTS["size_2xl"], "bold"),
             text_color=COLORS["text_primary"],
             anchor="w"
@@ -78,7 +79,7 @@ class HomeScreen(ctk.CTkFrame):
         
         self.subtitle_label = ctk.CTkLabel(
             self.greeting_frame,
-            text="كيف حالك اليوم؟",
+            text=_("كيف حالك اليوم؟"),
             font=(FONTS["family"], FONTS["size_md"]),
             text_color=COLORS["text_secondary"],
             anchor="w"
@@ -115,7 +116,7 @@ class HomeScreen(ctk.CTkFrame):
         
         self.vitals_title = ctk.CTkLabel(
             self.vitals_frame,
-            text="📊 العلامات الحيوية",
+            text=_("📊 العلامات الحيوية"),
             font=(FONTS["family"], FONTS["size_lg"], "bold"),
             text_color=COLORS["text_primary"],
             anchor="e"
@@ -133,11 +134,11 @@ class HomeScreen(ctk.CTkFrame):
         
         self.bp_card = VitalCard(
             self.cards_container,
-            title="ضغط الدم",
+            title=_("ضغط الدم"),
             icon="🩸",
             value="--/--",
             unit="mmHg",
-            status="جاري القياس...",
+            status=_("جاري القياس..."),
             color=COLORS["danger"]
         )
         self.bp_card.grid(row=0, column=2, padx=5, pady=5, sticky="nsew")

@@ -12,6 +12,7 @@ import sys
 
 sys.path.append('../..')
 from gui.styles.theme import COLORS, FONTS, RADIUS
+from core.arabic_utils import fix_arabic as _
 
 
 class NavButton(ctk.CTkButton):
@@ -34,7 +35,7 @@ class NavButton(ctk.CTkButton):
         self._text = text
         
         default_kwargs = {
-            "text": f"{icon}  {text}" if icon else text,
+            "text": f"{icon}  {_(text)}" if icon else _(text),
             "font": (FONTS["family"], FONTS["size_md"]),
             "fg_color": COLORS["primary_light"] if is_active else "transparent",
             "hover_color": COLORS["primary_light"] if is_active else COLORS["bg_secondary"],
@@ -76,7 +77,7 @@ class NavButton(ctk.CTkButton):
         if icon is not None:
             self._icon = icon
         self._text = text
-        display_text = f"{self._icon}  {text}" if self._icon else text
+        display_text = f"{self._icon}  {_(text)}" if self._icon else _(text)
         self.configure(text=display_text)
 
 
@@ -166,7 +167,7 @@ class SidebarNav(ctk.CTkFrame):
         self.voice_enabled = False
         self.voice_btn = ctk.CTkButton(
             self,
-            text="🔇 تفعيل الصوت",
+            text=_("🔇 تفعيل الصوت"),
             font=(FONTS["family"], FONTS["size_sm"]),
             fg_color=COLORS["bg_tertiary"],
             hover_color=COLORS["primary"],
@@ -179,7 +180,7 @@ class SidebarNav(ctk.CTkFrame):
         
         self.exit_btn = ctk.CTkButton(
             self,
-            text="🚪 خروج من البرنامج",
+            text=_("🚪 خروج من البرنامج"),
             font=(FONTS["family"], FONTS["size_sm"]),
             fg_color="transparent",
             hover_color=COLORS["danger"],
@@ -211,14 +212,14 @@ class SidebarNav(ctk.CTkFrame):
     def _update_voice_button(self):
         if self.voice_enabled:
             self.voice_btn.configure(
-                text="🎤 الصوت مفعّل",
+                text=_("🎤 الصوت مفعّل"),
                 fg_color=COLORS["success"],
                 hover_color=COLORS["success_hover"],
                 text_color=COLORS["text_primary"]
             )
         else:
             self.voice_btn.configure(
-                text="🔇 تفعيل الصوت",
+                text=_("🔇 تفعيل الصوت"),
                 fg_color=COLORS["bg_tertiary"],
                 hover_color=COLORS["primary"],
                 text_color=COLORS["text_secondary"]
@@ -272,7 +273,7 @@ class QuickActionButton(ctk.CTkButton):
         
         super().__init__(
             master,
-            text=f"{icon}\n{text}",
+            text=f"{icon}\n{_(text)}",
             font=(FONTS["family"], FONTS["size_md"], "bold"),
             fg_color=COLORS["bg_card"],
             hover_color=COLORS["bg_secondary"],

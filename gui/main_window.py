@@ -31,6 +31,7 @@ from modules.voice_assistant import voice_assistant
 from modules.voice_command_processor import voice_command_processor
 from modules.medication_reminder import medication_reminder
 from gui.widgets.keyboard import VirtualKeyboard
+from core.arabic_utils import fix_arabic as _
 
 
 class MainWindow(ctk.CTk):
@@ -51,7 +52,8 @@ class MainWindow(ctk.CTk):
         
         configure_customtkinter()
         
-        self.title("AI Medical Robot - نظام الروبوت الطبي الذكي")
+        title_text = _("AI Medical Robot - نظام الروبوت الطبي الذكي")
+        self.title(title_text)
         self.geometry(f"{config.SCREEN_WIDTH}x{config.SCREEN_HEIGHT}")
         
         if config.APP_FULLSCREEN:
@@ -142,11 +144,11 @@ class MainWindow(ctk.CTk):
     def _create_sidebar(self):
         """Create sidebar navigation - إنشاء شريط التنقل الجانبي"""
         nav_items = [
-            {"key": "home", "text": "الرئيسية", "icon": "🏠"},
-            {"key": "food", "text": "تحليل الطعام", "icon": "📷"},
-            {"key": "chat", "text": "المحادثة", "icon": "💬"},
-            {"key": "meds", "text": "الأدوية", "icon": "💊"},
-            {"key": "qr", "text": "بوابة المريض", "icon": "📱"},
+            {"key": "home", "text": _("الرئيسية"), "icon": "🏠"},
+            {"key": "food", "text": _("تحليل الطعام"), "icon": "📷"},
+            {"key": "chat", "text": _("المحادثة"), "icon": "💬"},
+            {"key": "meds", "text": _("الأدوية"), "icon": "💊"},
+            {"key": "qr", "text": _("بوابة المريض"), "icon": "📱"},
         ]
         
         self.sidebar = SidebarNav(
@@ -440,7 +442,7 @@ class MainWindow(ctk.CTk):
         color = colors.get(alert_type, COLORS["info"])
         
         dialog = ctk.CTkToplevel(self)
-        dialog.title(title)
+        dialog.title(_(title))
         dialog.geometry("400x250")
         dialog.configure(fg_color=COLORS["bg_secondary"])
         dialog.attributes("-topmost", True)
@@ -463,7 +465,7 @@ class MainWindow(ctk.CTk):
         
         ctk.CTkLabel(
             dialog,
-            text=message,
+            text=_(message),
             font=(FONTS["family"], FONTS["size_md"]),
             text_color=COLORS["text_primary"],
             wraplength=350
@@ -482,7 +484,7 @@ class MainWindow(ctk.CTk):
                 
             ctk.CTkButton(
                 btn_frame,
-                text=action_text,
+                text=_(action_text),
                 font=(FONTS["family"], FONTS["size_md"]),
                 fg_color=COLORS["success"],
                 hover_color="#059669",

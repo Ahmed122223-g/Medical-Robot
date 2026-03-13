@@ -12,6 +12,7 @@ import sys
 
 sys.path.append('../..')
 from gui.styles.theme import COLORS, FONTS, RADIUS, get_status_color
+from core.arabic_utils import fix_arabic as _
 
 
 class VitalCard(ctk.CTkFrame):
@@ -40,7 +41,7 @@ class VitalCard(ctk.CTkFrame):
             **kwargs
         )
         
-        self.title = title
+        self.title = _(title)
         self.icon = icon
         self.color = color or COLORS["primary"]
         
@@ -129,7 +130,7 @@ class VitalCard(ctk.CTkFrame):
         
         if status:
             status_color = get_status_color(status)
-            self.status_label.configure(text=status, text_color=status_color)
+            self.status_label.configure(text=_(status), text_color=status_color)
             self.status_frame.configure(fg_color=COLORS["bg_tertiary"])
     
     def set_color(self, color: str):
@@ -166,6 +167,7 @@ class CompactVitalCard(ctk.CTkFrame):
         )
         
         self.color = color or COLORS["primary"]
+        self.title = _(title)
         
         self.grid_columnconfigure(0, weight=0)
         self.grid_columnconfigure(1, weight=1)
@@ -181,7 +183,7 @@ class CompactVitalCard(ctk.CTkFrame):
         
         self.title_label = ctk.CTkLabel(
             self,
-            text=title,
+            text=self.title,
             font=(FONTS["family"], FONTS["size_sm"]),
             text_color=COLORS["text_muted"],
             anchor="e"

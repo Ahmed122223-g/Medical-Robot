@@ -12,6 +12,7 @@ import sys
 
 sys.path.append('../..')
 from gui.styles.theme import COLORS, FONTS, RADIUS
+from core.arabic_utils import fix_arabic as _
 from modules.medication_reminder import medication_reminder, Medication
 from modules.vital_signs import vital_signs_monitor
 
@@ -303,7 +304,7 @@ class MedsScreen(ctk.CTkFrame):
         
         self.title_label = ctk.CTkLabel(
             self.title_frame,
-            text="💊 الأدوية والعلاجات",
+            text=_("💊 الأدوية والعلاجات"),
             font=(FONTS["family"], FONTS["size_2xl"], "bold"),
             text_color=COLORS["text_primary"],
             anchor="e"
@@ -312,7 +313,7 @@ class MedsScreen(ctk.CTkFrame):
         
         self.subtitle_label = ctk.CTkLabel(
             self.title_frame,
-            text="إدارة الأدوية والتذكيرات وحاسبة الأنسولين",
+            text=_("إدارة الأدوية والتذكيرات وحاسبة الأنسولين"),
             font=(FONTS["family"], FONTS["size_sm"]),
             text_color=COLORS["text_secondary"],
             anchor="e"
@@ -336,7 +337,7 @@ class MedsScreen(ctk.CTkFrame):
         
         ctk.CTkLabel(
             header_frame,
-            text="📋 قائمة الأدوية",
+            text=_("📋 قائمة الأدوية"),
             font=(FONTS["family"], FONTS["size_lg"], "bold"),
             text_color=COLORS["text_primary"],
             anchor="e"

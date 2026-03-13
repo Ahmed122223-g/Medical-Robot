@@ -15,6 +15,7 @@ import sys
 
 sys.path.append('../..')
 from gui.styles.theme import COLORS, FONTS, RADIUS
+from core.arabic_utils import fix_arabic as _
 from modules.food_analyzer import food_analyzer, FoodAnalysisResult
 
 try:
@@ -57,7 +58,7 @@ class FoodScreen(ctk.CTkFrame):
         
         self.title_label = ctk.CTkLabel(
             self.title_frame,
-            text="📷 تحليل الطعام بالذكاء الاصطناعي",
+            text=_("📷 تحليل الطعام بالذكاء الاصطناعي"),
             font=(FONTS["family"], FONTS["size_2xl"], "bold"),
             text_color=COLORS["text_primary"],
             anchor="e"
@@ -66,7 +67,7 @@ class FoodScreen(ctk.CTkFrame):
         
         self.subtitle_label = ctk.CTkLabel(
             self.title_frame,
-            text="التقط صورة للطعام لتحليله ومعرفة مدى ملاءمته لحالتك الصحية",
+            text=_("التقط صورة للطعام لتحليله ومعرفة مدى ملاءمته لحالتك الصحية"),
             font=(FONTS["family"], FONTS["size_sm"]),
             text_color=COLORS["text_secondary"],
             anchor="e"
@@ -91,7 +92,7 @@ class FoodScreen(ctk.CTkFrame):
         
         self.preview_label = ctk.CTkLabel(
             self.camera_frame,
-            text="📷\n\nاضغط على 'بدء الكاميرا' لعرض الكاميرا",
+            text=_("📷\n\nاضغط على 'بدء الكاميرا' لعرض الكاميرا"),
             font=(FONTS["family"], FONTS["size_lg"]),
             text_color=COLORS["text_muted"],
             fg_color=COLORS["bg_tertiary"],
