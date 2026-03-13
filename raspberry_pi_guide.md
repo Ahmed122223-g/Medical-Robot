@@ -98,7 +98,7 @@ source venv/bin/activate
 ### 5. تثبيت مكتبات البايثون
 ```bash
 pip install --upgrade pip setuptools wheel
-pip install -r requirements.txt
+pip install -r requirements.txt --prefer-binary
 ```
 
 **⚠️ ملاحظات هامة:**
