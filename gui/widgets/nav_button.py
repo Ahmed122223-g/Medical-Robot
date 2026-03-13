@@ -91,6 +91,7 @@ class SidebarNav(ctk.CTkFrame):
         master,
         items: list[dict],
         on_select: Optional[Callable[[str], None]] = None,
+        on_exit: Optional[Callable] = None,
         **kwargs
     ):
         super().__init__(
@@ -104,6 +105,7 @@ class SidebarNav(ctk.CTkFrame):
         
         self.items = items
         self.on_select = on_select
+        self.on_exit = on_exit
         self.buttons: dict[str, NavButton] = {}
         self.current_key: Optional[str] = None
         
@@ -173,7 +175,22 @@ class SidebarNav(ctk.CTkFrame):
             height=40,
             command=self._toggle_voice
         )
-        self.voice_btn.grid(row=len(self.items)+3, column=0, sticky="ew", padx=10, pady=5)
+        self.voice_btn.grid(row=len(self.items)+3, column=0, sticky="ew", padx=10, pady=(5, 2))
+        
+        self.exit_btn = ctk.CTkButton(
+            self,
+            text="🚪 خروج من البرنامج",
+            font=(FONTS["family"], FONTS["size_sm"]),
+            fg_color="transparent",
+            hover_color=COLORS["danger"],
+            text_color=COLORS["text_secondary"],
+            border_width=1,
+            border_color=COLORS["border"],
+            corner_radius=RADIUS["md"],
+            height=40,
+            command=self.on_exit
+        )
+        self.exit_btn.grid(row=len(self.items)+4, column=0, sticky="ew", padx=10, pady=(2, 5))
         
         self.on_voice_toggle = None
         
@@ -183,7 +200,7 @@ class SidebarNav(ctk.CTkFrame):
             font=(FONTS["family_en"], FONTS["size_xs"]),
             text_color=COLORS["text_muted"],
         )
-        self.version_label.grid(row=len(self.items)+4, column=0, pady=10)
+        self.version_label.grid(row=len(self.items)+5, column=0, pady=10)
     
     def _toggle_voice(self):
         self.voice_enabled = not self.voice_enabled

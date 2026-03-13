@@ -122,7 +122,8 @@ class MainWindow(ctk.CTk):
             self,
             items=nav_items,
             on_select=self._on_nav_select,
-            width=200
+            on_exit=self._on_close,
+            width=160
         )
         self.sidebar.grid(row=0, column=0, sticky="nsew")
         
