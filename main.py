@@ -62,13 +62,17 @@ def check_dependencies():
     
     for module_name, package_name in required:
         try:
+            print(f"⏳ Loading {package_name}...", flush=True)
             __import__(module_name)
+            print(f"✅ {package_name} loaded.", flush=True)
         except ImportError:
             missing.append(package_name)
     
     if missing:
+        print(f"❌ Missing: {', '.join(missing)}", flush=True)
         return False
     
+    print("✅ All dependencies checked.", flush=True)
     return True
 
 
@@ -101,9 +105,9 @@ def main():
     except KeyboardInterrupt:
         pass
     except Exception as e:
-        if config.DEBUG_MODE:
-            import traceback
-            traceback.print_exc()
+        import traceback
+        print("💥 CRITICAL ERROR CRASH:", flush=True)
+        traceback.print_exc()
         sys.exit(1)
 
 
