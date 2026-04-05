@@ -8,7 +8,7 @@ sys.path.insert(0, str(PROJECT_ROOT))
 
 def parse_args():
     parser = argparse.ArgumentParser(
-        description="AI Robot Operating System - نظام تشغيل الروبوت الطبي الذكي"
+        description="AI Robot Operating System - Medical Robot"
     )
     
     parser.add_argument(
@@ -46,24 +46,7 @@ def parse_args():
     return parser.parse_args()
 
 
-def print_banner():
-    banner = """
-╔══════════════════════════════════════════════════════════════╗
-║                                                              ║
-║     🤖 AI ROBOT OPERATING SYSTEM                            ║
-║        نظام تشغيل الروبوت الطبي الذكي                        ║
-║                                                              ║
-║     Version: 1.0.0                                           ║
-║     Medical Robot for Patient Care                           ║
-║                                                              ║
-╚══════════════════════════════════════════════════════════════╝
-    """
-    print(banner)
-
-
 def check_dependencies():
-    print("🔍 Checking dependencies...")
-    
     required = [
         ("customtkinter", "customtkinter"),
         ("PIL", "pillow"),
@@ -80,27 +63,19 @@ def check_dependencies():
     for module_name, package_name in required:
         try:
             __import__(module_name)
-            print(f"   ✅ {package_name}")
         except ImportError:
-            print(f"   ❌ {package_name}")
             missing.append(package_name)
     
     if missing:
-        print(f"\n⚠️ Missing packages: {', '.join(missing)}")
-        print("   Install with: pip install " + " ".join(missing))
         return False
     
-    print("✅ All dependencies satisfied\n")
     return True
 
 
 def main():
-    print_banner()
-    
     args = parse_args()
     
     if not check_dependencies():
-        print("❌ Please install missing dependencies and try again.")
         sys.exit(1)
     
     from config import config
@@ -117,24 +92,15 @@ def main():
     if args.height:
         config.SCREEN_HEIGHT = args.height
     
-    config.print_config()
-    
     if not config.validate():
-        print("\n❌ Configuration validation failed!")
-        print("   Please check your .env file and ensure all required values are set.")
         sys.exit(1)
-    
-    print("\n🚀 Starting AI Robot OS...")
-    print("   Press ESC or F11 to toggle fullscreen")
-    print("   Close window to exit\n")
     
     try:
         from gui.main_window import run_app
         run_app()
     except KeyboardInterrupt:
-        print("\n\n👋 Goodbye! تم إيقاف النظام")
+        pass
     except Exception as e:
-        print(f"\n❌ Error: {e}")
         if config.DEBUG_MODE:
             import traceback
             traceback.print_exc()

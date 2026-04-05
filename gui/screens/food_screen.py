@@ -1,11 +1,6 @@
 """
 AI Robot Operating System - Food Analysis Screen
-نظام تشغيل الروبوت الطبي الذكي - شاشة تحليل الطعام
-
-Screen for capturing food images and analyzing them
-using Gemini Vision AI.
-
-شاشة لالتقاط صور الطعام وتحليلها باستخدام Gemini Vision AI.
+Screen for capturing food images and analyzing them using Gemini Vision AI.
 """
 
 import customtkinter as ctk
@@ -27,10 +22,7 @@ except ImportError:
 
 
 class FoodScreen(ctk.CTkFrame):
-    """
-    Food Analysis Screen
-    شاشة تحليل الطعام
-    """
+    """Food Analysis Screen"""
     
     def __init__(self, master, app_controller=None, **kwargs):
         super().__init__(
@@ -58,21 +50,22 @@ class FoodScreen(ctk.CTkFrame):
         
         self.title_label = ctk.CTkLabel(
             self.title_frame,
-            text=_("📷 تحليل الطعام بالذكاء الاصطناعي"),
-            font=(FONTS["family"], FONTS["size_2xl"], "bold"),
+            text="📷 AI Food Analysis",
+            font=(FONTS["family_en"], FONTS["size_2xl"], "bold"),
             text_color=COLORS["text_primary"],
-            anchor="e"
+            anchor="w"
         )
-        self.title_label.pack(anchor="e")
+        self.title_label.pack(anchor="w")
         
         self.subtitle_label = ctk.CTkLabel(
             self.title_frame,
-            text=_("التقط صورة للطعام لتحليله ومعرفة مدى ملاءمته لحالتك الصحية"),
-            font=(FONTS["family"], FONTS["size_sm"]),
+            text="Capture a photo of food to analyze its suitability for your health condition",
+            font=(FONTS["family_en"], FONTS["size_sm"]),
             text_color=COLORS["text_secondary"],
-            anchor="e"
+            anchor="w",
+            wraplength=600
         )
-        self.subtitle_label.pack(anchor="e")
+        self.subtitle_label.pack(anchor="w")
         
         self._create_camera_section()
         
@@ -92,8 +85,8 @@ class FoodScreen(ctk.CTkFrame):
         
         self.preview_label = ctk.CTkLabel(
             self.camera_frame,
-            text=_("📷\n\nاضغط على 'بدء الكاميرا' لعرض الكاميرا"),
-            font=(FONTS["family"], FONTS["size_lg"]),
+            text="📷\n\nPress 'Start Camera' to begin",
+            font=(FONTS["family_en"], FONTS["size_lg"]),
             text_color=COLORS["text_muted"],
             fg_color=COLORS["bg_tertiary"],
             corner_radius=RADIUS["md"]
@@ -108,26 +101,26 @@ class FoodScreen(ctk.CTkFrame):
         
         self.camera_btn = ctk.CTkButton(
             self.controls_frame,
-            text="🎥 بدء الكاميرا",
-            font=(FONTS["family"], FONTS["size_md"]),
+            text="🎥 Start Camera",
+            font=(FONTS["family_en"], FONTS["size_md"]),
             fg_color=COLORS["primary"],
             hover_color=COLORS["primary_hover"],
             height=45,
             command=self._toggle_camera
         )
-        self.camera_btn.pack(side="right", padx=5)
+        self.camera_btn.pack(side="left", padx=5)
         
         self.capture_btn = ctk.CTkButton(
             self.controls_frame,
-            text="📸 التقاط وتحليل",
-            font=(FONTS["family"], FONTS["size_md"]),
+            text="📸 Capture & Analyze",
+            font=(FONTS["family_en"], FONTS["size_md"]),
             fg_color=COLORS["success"],
             hover_color=COLORS["success_hover"],
             height=45,
             command=self._capture_and_analyze,
             state="disabled"
         )
-        self.capture_btn.pack(side="right", padx=5)
+        self.capture_btn.pack(side="left", padx=5)
     
     def _create_results_section(self):
         self.results_frame = ctk.CTkFrame(
@@ -139,12 +132,12 @@ class FoodScreen(ctk.CTkFrame):
         
         self.results_title = ctk.CTkLabel(
             self.results_frame,
-            text="📊 نتائج التحليل",
-            font=(FONTS["family"], FONTS["size_lg"], "bold"),
+            text="📊 Analysis Results",
+            font=(FONTS["family_en"], FONTS["size_lg"], "bold"),
             text_color=COLORS["text_primary"],
-            anchor="e"
+            anchor="w"
         )
-        self.results_title.pack(anchor="e", padx=20, pady=(15, 10))
+        self.results_title.pack(anchor="w", padx=20, pady=(15, 10))
         
         self.results_scroll = ctk.CTkScrollableFrame(
             self.results_frame,
@@ -154,8 +147,8 @@ class FoodScreen(ctk.CTkFrame):
         
         self.placeholder_label = ctk.CTkLabel(
             self.results_scroll,
-            text="🍽️\n\nالتقط صورة للطعام لبدء التحليل",
-            font=(FONTS["family"], FONTS["size_lg"]),
+            text="🍽️\n\nCapture a photo to start analysis",
+            font=(FONTS["family_en"], FONTS["size_lg"]),
             text_color=COLORS["text_muted"]
         )
         self.placeholder_label.pack(expand=True, pady=50)
@@ -169,7 +162,7 @@ class FoodScreen(ctk.CTkFrame):
     def _start_camera(self):
         if not CV2_AVAILABLE:
             self.preview_label.configure(
-                text="❌\n\nالكاميرا غير متاحة\nيرجى تثبيت OpenCV"
+                text="❌\n\nCamera not available\nPlease install OpenCV"
             )
             return
         
@@ -177,18 +170,18 @@ class FoodScreen(ctk.CTkFrame):
             self.cap = cv2.VideoCapture(0)
             if not self.cap.isOpened():
                 self.preview_label.configure(
-                    text="❌\n\nفشل في فتح الكاميرا"
+                    text="❌\n\nFailed to open camera"
                 )
                 return
             
             self.camera_running = True
-            self.camera_btn.configure(text="⏹️ إيقاف الكاميرا", fg_color=COLORS["danger"])
+            self.camera_btn.configure(text="⏹️ Stop Camera", fg_color=COLORS["danger"])
             self.capture_btn.configure(state="normal")
             
             threading.Thread(target=self._camera_loop, daemon=True).start()
             
         except Exception as e:
-            self.preview_label.configure(text=f"❌ خطأ: {str(e)}")
+            self.preview_label.configure(text=f"❌ Error: {str(e)}")
     
     def _stop_camera(self):
         self.camera_running = False
@@ -197,11 +190,11 @@ class FoodScreen(ctk.CTkFrame):
             self.cap.release()
             self.cap = None
         
-        self.camera_btn.configure(text="🎥 بدء الكاميرا", fg_color=COLORS["primary"])
+        self.camera_btn.configure(text="🎥 Start Camera", fg_color=COLORS["primary"])
         self.capture_btn.configure(state="disabled")
         
         self.preview_label.configure(
-            text="📷\n\nاضغط على 'بدء الكاميرا' لعرض الكاميرا",
+            text="📷\n\nPress 'Start Camera' to begin",
             image=None
         )
     
@@ -237,8 +230,7 @@ class FoodScreen(ctk.CTkFrame):
                         self.preview_label.configure(text="", image=photo)
                         self.preview_label.image = photo
                 
-            except Exception as e:
-                print(f"Camera error: {e}")
+            except Exception:
                 break
     
     def _capture_and_analyze(self):
@@ -252,13 +244,13 @@ class FoodScreen(ctk.CTkFrame):
         image_path = os.path.join(temp_dir, "food_capture.jpg")
         cv2.imwrite(image_path, self.current_frame)
         
-        self.capture_btn.configure(state="disabled", text="⏳ جاري التحليل...")
+        self.capture_btn.configure(state="disabled", text="⏳ Analyzing...")
         self._clear_results()
         
         loading_label = ctk.CTkLabel(
             self.results_scroll,
-            text="⏳\n\nجاري تحليل الصورة...\nيرجى الانتظار",
-            font=(FONTS["family"], FONTS["size_lg"]),
+            text="⏳\n\nAnalyzing image...\nPlease wait",
+            font=(FONTS["family_en"], FONTS["size_lg"]),
             text_color=COLORS["primary"]
         )
         loading_label.pack(expand=True, pady=50)
@@ -280,17 +272,17 @@ class FoodScreen(ctk.CTkFrame):
     
     def _show_results(self, result: FoodAnalysisResult):
         self._clear_results()
-        self.capture_btn.configure(state="normal", text="📸 التقاط وتحليل")
+        self.capture_btn.configure(state="normal", text="📸 Capture & Analyze")
         
         if not result.analysis_successful:
             error_msg = result.error_message
             if "429" in error_msg or "Quota" in error_msg:
-                error_msg = "⚠️ تم تجاوز الحد اليومي للاستخدام المجاني للذكاء الاصطناعي.\nيرجى المحاولة لاحقاً."
+                error_msg = "⚠️ Daily free AI usage limit exceeded.\nPlease try again later."
             
             error_label = ctk.CTkLabel(
                 self.results_scroll,
                 text=f"❌ {error_msg}",
-                font=(FONTS["family"], FONTS["size_lg"]),
+                font=(FONTS["family_en"], FONTS["size_lg"]),
                 text_color=COLORS["danger"]
             )
             error_label.pack(expand=True, pady=50)
@@ -308,8 +300,8 @@ class FoodScreen(ctk.CTkFrame):
             text=f"🍽️ {result.food_name_ar}",
             font=(FONTS["family"], FONTS["size_xl"], "bold"),
             text_color=COLORS["text_primary"],
-            anchor="e"
-        ).pack(anchor="e", padx=15, pady=10)
+            anchor="w"
+        ).pack(anchor="w", padx=15, pady=10)
         
         if result.food_name:
             ctk.CTkLabel(
@@ -317,8 +309,8 @@ class FoodScreen(ctk.CTkFrame):
                 text=f"({result.food_name})",
                 font=(FONTS["family_en"], FONTS["size_sm"]),
                 text_color=COLORS["text_muted"],
-                anchor="e"
-            ).pack(anchor="e", padx=15, pady=(0, 10))
+                anchor="w"
+            ).pack(anchor="w", padx=15, pady=(0, 10))
         
         if result.description:
             ctk.CTkLabel(
@@ -326,9 +318,9 @@ class FoodScreen(ctk.CTkFrame):
                 text=result.description,
                 font=(FONTS["family"], FONTS["size_md"]),
                 text_color=COLORS["text_secondary"],
-                anchor="e",
-                wraplength=350
-            ).pack(anchor="e", pady=10, padx=5)
+                anchor="w",
+                wraplength=int(self.winfo_width() * 0.4) if self.winfo_width() > 100 else 350
+            ).pack(anchor="w", pady=10, padx=5, fill="x")
         
         self._add_nutrition_section(result)
         
@@ -343,9 +335,9 @@ class FoodScreen(ctk.CTkFrame):
                 text=f"💡 {result.overall_recommendation}",
                 font=(FONTS["family"], FONTS["size_md"]),
                 text_color="#ffffff",
-                anchor="e",
-                wraplength=450
-            ).pack(anchor="e", padx=15, pady=15)
+                anchor="w",
+                wraplength=int(self.winfo_width() * 0.45) if self.winfo_width() > 100 else 450
+            ).pack(anchor="w", padx=15, pady=15, fill="x")
         
         self._speak_results(result)
     
@@ -402,37 +394,37 @@ class FoodScreen(ctk.CTkFrame):
             full_speech = ". ".join(speech_parts)
             voice_assistant.speak(full_speech, wait=False)
             
-        except Exception as e:
-            print(f"⚠️ Could not speak results: {e}")
+        except Exception:
+            pass
     
     def _add_suitability_warning(self, result: FoodAnalysisResult):
         unsuitable_conditions = []
         reasons = []
         
         if not result.diabetes_suitability.is_suitable or result.diabetes_suitability.risk_level == "high":
-            unsuitable_conditions.append("مرضى السكري")
+            unsuitable_conditions.append("Diabetes Patients")
             if result.diabetes_suitability.warnings:
                 reasons.extend(result.diabetes_suitability.warnings)
             elif result.nutrition.sugar > 15:
-                reasons.append(f"نسبة السكريات مرتفعة ({result.nutrition.sugar} جم)")
+                reasons.append(f"High sugar content ({result.nutrition.sugar}g)")
             elif result.nutrition.carbohydrates > 50:
-                reasons.append(f"نسبة الكربوهيدرات مرتفعة ({result.nutrition.carbohydrates} جم)")
+                reasons.append(f"High carbohydrate content ({result.nutrition.carbohydrates}g)")
         
         if not result.hypertension_suitability.is_suitable or result.hypertension_suitability.risk_level == "high":
-            unsuitable_conditions.append("مرضى الضغط")
+            unsuitable_conditions.append("Hypertension Patients")
             if result.hypertension_suitability.warnings:
                 reasons.extend(result.hypertension_suitability.warnings)
             elif result.nutrition.sodium > 500:
-                reasons.append(f"نسبة الصوديوم مرتفعة ({result.nutrition.sodium} مجم)")
+                reasons.append(f"High sodium content ({result.nutrition.sodium}mg)")
         
         if not result.heart_suitability.is_suitable or result.heart_suitability.risk_level == "high":
-            unsuitable_conditions.append("مرضى القلب")
+            unsuitable_conditions.append("Heart Disease Patients")
             if result.heart_suitability.warnings:
                 reasons.extend(result.heart_suitability.warnings)
             elif result.nutrition.fat > 20:
-                reasons.append(f"نسبة الدهون مرتفعة ({result.nutrition.fat} جم)")
+                reasons.append(f"High fat content ({result.nutrition.fat}g)")
             elif result.nutrition.cholesterol > 100:
-                reasons.append(f"نسبة الكوليسترول مرتفعة ({result.nutrition.cholesterol} مجم)")
+                reasons.append(f"High cholesterol ({result.nutrition.cholesterol}mg)")
         
         if unsuitable_conditions:
             warning_frame = ctk.CTkFrame(
@@ -449,40 +441,40 @@ class FoodScreen(ctk.CTkFrame):
             
             ctk.CTkLabel(
                 header_frame,
-                text=_("⚠️ هذا الطعام غير مناسب"),
-                font=(FONTS["family"], FONTS["size_lg"], "bold"),
+                text="⚠️ This food is not suitable",
+                font=(FONTS["family_en"], FONTS["size_lg"], "bold"),
                 text_color="#ffffff",
                 anchor="center"
             ).pack(pady=10)
             
-            conditions_text = _("غير مناسب لـ: ") + " - ".join([_(c) for c in unsuitable_conditions])
+            conditions_text = "Not suitable for: " + " - ".join(unsuitable_conditions)
             ctk.CTkLabel(
                 warning_frame,
                 text=conditions_text,
-                font=(FONTS["family"], FONTS["size_md"], "bold"),
+                font=(FONTS["family_en"], FONTS["size_md"], "bold"),
                 text_color=COLORS["danger"],
-                anchor="e"
-            ).pack(anchor="e", padx=15, pady=(10, 5))
+                anchor="w"
+            ).pack(anchor="w", padx=15, pady=(10, 5))
             
             if reasons:
                 ctk.CTkLabel(
                     warning_frame,
-                    text=_("📋 الأسباب:"),
-                    font=(FONTS["family"], FONTS["size_md"], "bold"),
+                    text="📋 Reasons:",
+                    font=(FONTS["family_en"], FONTS["size_md"], "bold"),
                     text_color=COLORS["text_primary"],
-                    anchor="e"
-                ).pack(anchor="e", padx=15, pady=(5, 0))
+                    anchor="w"
+                ).pack(anchor="w", padx=15, pady=(5, 0))
                 
                 unique_reasons = list(dict.fromkeys(reasons))
                 for reason in unique_reasons[:5]:
                     ctk.CTkLabel(
                         warning_frame,
-                        text=_ (f"• {reason}"),
-                        font=(FONTS["family"], FONTS["size_sm"]),
+                        text=f"• {reason}",
+                        font=(FONTS["family_en"], FONTS["size_sm"]),
                         text_color=COLORS["text_secondary"],
-                        anchor="e",
+                        anchor="w",
                         wraplength=300
-                    ).pack(anchor="e", padx=20, pady=2)
+                    ).pack(anchor="w", padx=20, pady=2)
             
             ctk.CTkLabel(warning_frame, text="", height=10).pack()
     
@@ -492,19 +484,19 @@ class FoodScreen(ctk.CTkFrame):
         
         ctk.CTkLabel(
             section_frame,
-            text=_("📊 المعلومات الغذائية"),
-            font=(FONTS["family"], FONTS["size_md"], "bold"),
+            text="📊 Nutritional Information",
+            font=(FONTS["family_en"], FONTS["size_md"], "bold"),
             text_color=COLORS["text_primary"],
-            anchor="e"
-        ).pack(anchor="e", padx=15, pady=(10, 5))
+            anchor="w"
+        ).pack(anchor="w", padx=15, pady=(10, 5))
         
         nutrition = result.nutrition
         items = [
-            ("السعرات الحرارية", f"{nutrition.calories}", "سعرة"),
-            ("الكربوهيدرات", f"{nutrition.carbohydrates}", "جم"),
-            ("السكريات", f"{nutrition.sugar}", "جم"),
-            ("الدهون", f"{nutrition.fat}", "جم"),
-            ("البروتين", f"{nutrition.protein}", "جم"),
+            ("Calories", f"{nutrition.calories}", "kcal"),
+            ("Carbohydrates", f"{nutrition.carbohydrates}", "g"),
+            ("Sugar", f"{nutrition.sugar}", "g"),
+            ("Fat", f"{nutrition.fat}", "g"),
+            ("Protein", f"{nutrition.protein}", "g"),
         ]
         
         for name, value, unit in items:
@@ -513,16 +505,16 @@ class FoodScreen(ctk.CTkFrame):
             
             ctk.CTkLabel(
                 item_frame,
-                text=f"{unit} {value}",
+                text=name,
                 font=(FONTS["family_en"], FONTS["size_sm"]),
-                text_color=COLORS["text_muted"]
+                text_color=COLORS["text_secondary"]
             ).pack(side="left")
             
             ctk.CTkLabel(
                 item_frame,
-                text=name,
-                font=(FONTS["family"], FONTS["size_sm"]),
-                text_color=COLORS["text_secondary"]
+                text=f"{value} {unit}",
+                font=(FONTS["family_en"], FONTS["size_sm"]),
+                text_color=COLORS["text_muted"]
             ).pack(side="right")
         
         ctk.CTkLabel(section_frame, text="", height=10).pack()
@@ -533,16 +525,16 @@ class FoodScreen(ctk.CTkFrame):
         
         ctk.CTkLabel(
             section_frame,
-            text="🏥 التقييم الصحي",
-            font=(FONTS["family"], FONTS["size_md"], "bold"),
+            text="🏥 Health Assessment",
+            font=(FONTS["family_en"], FONTS["size_md"], "bold"),
             text_color=COLORS["text_primary"],
-            anchor="e"
-        ).pack(anchor="e", padx=15, pady=(10, 5))
+            anchor="w"
+        ).pack(anchor="w", padx=15, pady=(10, 5))
         
         suitabilities = [
-            ("السكري", result.diabetes_suitability),
-            ("الضغط", result.hypertension_suitability),
-            ("القلب", result.heart_suitability),
+            ("Diabetes", result.diabetes_suitability),
+            ("Hypertension", result.hypertension_suitability),
+            ("Heart Disease", result.heart_suitability),
         ]
         
         for name, suit in suitabilities:
@@ -556,15 +548,15 @@ class FoodScreen(ctk.CTkFrame):
             
             ctk.CTkLabel(
                 item_frame,
-                text=emoji,
-                font=(FONTS["family"], FONTS["size_lg"]),
+                text=name,
+                font=(FONTS["family_en"], FONTS["size_md"]),
+                text_color=color
             ).pack(side="left")
             
             ctk.CTkLabel(
                 item_frame,
-                text=name,
-                font=(FONTS["family"], FONTS["size_md"]),
-                text_color=color
+                text=emoji,
+                font=(FONTS["family"], FONTS["size_lg"]),
             ).pack(side="right")
         
         ctk.CTkLabel(section_frame, text="", height=10).pack()

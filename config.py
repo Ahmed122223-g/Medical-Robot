@@ -28,12 +28,12 @@ class Config:
     ARDUINO_PORT: str = os.getenv('ARDUINO_PORT', DEFAULT_PORT)
     ARDUINO_BAUD_RATE: int = int(os.getenv('ARDUINO_BAUD_RATE', '9600'))
     
-    APP_LANGUAGE: str = os.getenv('APP_LANGUAGE', 'ar')
+    APP_LANGUAGE: str = os.getenv('APP_LANGUAGE', 'en')
     APP_FULLSCREEN: bool = os.getenv('APP_FULLSCREEN', 'true').lower() == 'true'
     SCREEN_WIDTH: int = int(os.getenv('SCREEN_WIDTH', '800'))
     SCREEN_HEIGHT: int = int(os.getenv('SCREEN_HEIGHT', '480'))
     
-    DEBUG_MODE: bool = os.getenv('DEBUG_MODE', 'true').lower() == 'true'
+    DEBUG_MODE: bool = os.getenv('DEBUG_MODE', 'false').lower() == 'true'
     
     ELEVENLABS_API_KEY: str = os.getenv('ELEVENLABS_API_KEY', '')
     VOICE_ENABLED: bool = os.getenv('VOICE_ENABLED', 'true').lower() == 'true'
@@ -83,34 +83,13 @@ class Config:
     
     @classmethod
     def validate(cls) -> bool:
-        errors = []
-        
         if not cls.GEMINI_API_KEY:
-            errors.append("GEMINI_API_KEY is not set")
-        
-        if errors:
-            for error in errors:
-                print(f"❌ Configuration Error: {error}")
             return False
-        
         return True
     
     @classmethod
     def print_config(cls):
-        print("=" * 50)
-        print("🤖 AI Robot OS Configuration")
-        print("=" * 50)
-        print(f"📍 Base Directory: {cls.BASE_DIR}")
-        print(f"🔑 Gemini API Key: {'*' * 20}...{cls.GEMINI_API_KEY[-4:] if cls.GEMINI_API_KEY else 'NOT SET'}")
-        print(f"🤖 Gemini Model: {cls.GEMINI_MODEL}")
-        print(f"📷 Gemini Vision Model: {cls.GEMINI_VISION_MODEL}")
-        print(f"🔌 Arduino Port: {cls.ARDUINO_PORT}")
-        print(f"📡 Arduino Baud Rate: {cls.ARDUINO_BAUD_RATE}")
-        print(f"🌐 Language: {cls.APP_LANGUAGE}")
-        print(f"📺 Screen: {cls.SCREEN_WIDTH}x{cls.SCREEN_HEIGHT}")
-        print(f"🖥️ Fullscreen: {cls.APP_FULLSCREEN}")
-        print(f"🐛 Debug Mode: {cls.DEBUG_MODE}")
-        print("=" * 50)
+        pass
 
 
 config = Config()

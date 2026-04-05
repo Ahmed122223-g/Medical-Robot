@@ -1,12 +1,5 @@
 """
 AI Robot Operating System - Theme Configuration
-نظام تشغيل الروبوت الطبي الذكي - إعدادات السمة
-
-This module contains all theme settings including colors,
-fonts, and styling constants for the GUI.
-
-هذا الملف يحتوي على جميع إعدادات السمة بما في ذلك الألوان
-والخطوط وثوابت التنسيق للواجهة الرسومية.
 """
 
 import customtkinter as ctk
@@ -27,6 +20,7 @@ COLORS = {
     "warning_hover": "#D97706",
     "danger": "#EF4444",
     "danger_hover": "#DC2626",
+    "danger_light": "#FEE2E2",
     "info": "#06B6D4",
     
     "bg_primary": "#F8FAFC",
@@ -147,7 +141,7 @@ def get_button_style(variant: str = "primary") -> dict:
         "warning": {
             "fg_color": COLORS["warning"],
             "hover_color": COLORS["warning_hover"],
-            "text_color": COLORS["text_dark"],
+            "text_color": COLORS["text_primary"],
         },
         "danger": {
             "fg_color": COLORS["danger"],
@@ -207,9 +201,9 @@ def get_status_color(status: str) -> str:
     
     if any(word in status_lower for word in ["طبيعي", "normal", "good", "جيد"]):
         return COLORS["success"]
-    elif any(word in status_lower for word in ["مرتفع", "high", "خطر", "danger"]):
+    elif any(word in status_lower for word in ["مرتفع", "high", "خطر", "danger", "very high", "very fast", "fever"]):
         return COLORS["danger"]
-    elif any(word in status_lower for word in ["منخفض", "low", "تحذير", "warning", "قليل"]):
+    elif any(word in status_lower for word in ["منخفض", "low", "تحذير", "warning", "قليل", "slight", "slow", "mild"]):
         return COLORS["warning"]
     
     return STATUS_COLORS.get(status_lower, COLORS["text_primary"])

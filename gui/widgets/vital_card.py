@@ -1,9 +1,6 @@
 """
 AI Robot Operating System - Vital Card Widget
-نظام تشغيل الروبوت الطبي الذكي - عنصر بطاقة العلامات الحيوية
-
 A custom widget for displaying vital signs with status indicators.
-عنصر مخصص لعرض العلامات الحيوية مع مؤشرات الحالة.
 """
 
 import customtkinter as ctk
@@ -41,7 +38,7 @@ class VitalCard(ctk.CTkFrame):
             **kwargs
         )
         
-        self.title = _(title)
+        self.title = title
         self.icon = icon
         self.color = color or COLORS["primary"]
         
@@ -68,16 +65,16 @@ class VitalCard(ctk.CTkFrame):
             font=(FONTS["family"], FONTS["size_2xl"]),
             text_color=self.color
         )
-        self.icon_label.pack(side="right", padx=(0, 10))
+        self.icon_label.pack(side="left", padx=(0, 10))
         
         self.title_label = ctk.CTkLabel(
             self.header_frame,
             text=self.title,
             font=(FONTS["family"], FONTS["size_md"], "bold"),
             text_color=COLORS["text_secondary"],
-            anchor="e"
+            anchor="w"
         )
-        self.title_label.pack(side="right", fill="x", expand=True)
+        self.title_label.pack(side="left", fill="x", expand=True)
         
         self.value_frame = ctk.CTkFrame(
             self, 
@@ -130,7 +127,7 @@ class VitalCard(ctk.CTkFrame):
         
         if status:
             status_color = get_status_color(status)
-            self.status_label.configure(text=_(status), text_color=status_color)
+            self.status_label.configure(text=status, text_color=status_color)
             self.status_frame.configure(fg_color=COLORS["bg_tertiary"])
     
     def set_color(self, color: str):
@@ -167,7 +164,7 @@ class CompactVitalCard(ctk.CTkFrame):
         )
         
         self.color = color or COLORS["primary"]
-        self.title = _(title)
+        self.title = title
         
         self.grid_columnconfigure(0, weight=0)
         self.grid_columnconfigure(1, weight=1)
@@ -186,12 +183,12 @@ class CompactVitalCard(ctk.CTkFrame):
             text=self.title,
             font=(FONTS["family"], FONTS["size_sm"]),
             text_color=COLORS["text_muted"],
-            anchor="e"
+            anchor="w"
         )
-        self.title_label.grid(row=0, column=1, sticky="e", padx=10, pady=(10, 0))
+        self.title_label.grid(row=0, column=1, sticky="w", padx=10, pady=(10, 0))
         
         self.value_frame = ctk.CTkFrame(self, fg_color="transparent")
-        self.value_frame.grid(row=1, column=1, sticky="e", padx=10, pady=(0, 10))
+        self.value_frame.grid(row=1, column=1, sticky="w", padx=10, pady=(0, 10))
         
         self.value_label = ctk.CTkLabel(
             self.value_frame,

@@ -1,12 +1,7 @@
 """
 AI Robot Operating System - Main Window
-نظام تشغيل الروبوت الطبي الذكي - النافذة الرئيسية
-
 The main application window that contains all screens
 and handles navigation between them.
-
-النافذة الرئيسية للتطبيق التي تحتوي على جميع الشاشات
-وتتعامل مع التنقل بينها.
 """
 
 import customtkinter as ctk
@@ -35,10 +30,7 @@ from core.arabic_utils import fix_arabic as _
 
 
 class MainWindow(ctk.CTk):
-    """
-    Main Application Window
-    النافذة الرئيسية للتطبيق
-    """
+    """Main Application Window"""
     
     def __init__(self):
         try:
@@ -52,8 +44,7 @@ class MainWindow(ctk.CTk):
         
         configure_customtkinter()
         
-        title_text = _("AI Medical Robot - نظام الروبوت الطبي الذكي")
-        self.title(title_text)
+        self.title("AI Medical Robot")
         self.geometry(f"{config.SCREEN_WIDTH}x{config.SCREEN_HEIGHT}")
         
         if config.APP_FULLSCREEN:
@@ -68,10 +59,7 @@ class MainWindow(ctk.CTk):
         self.screens = {}
         self.current_screen = None
         self.voice_permission_granted = config.VOICE_ENABLED
-        self.keyboard_window = None
-        
-        # Global binding for on-screen keyboard
-        self.bind_all("<FocusIn>", self._handle_widget_focus)
+        self.keyboard = None
         
         self._create_layout()
         
@@ -89,68 +77,91 @@ class MainWindow(ctk.CTk):
     def _set_icon(self):
         try:
             import os
-            
             ico_path = os.path.join(config.BASE_DIR, "assets", "icon.ico")
             if os.path.exists(ico_path):
                 self.iconbitmap(ico_path)
-                print("✅ Application icon set")
-            else:
-                print(f"⚠️ Icon not found: {ico_path}")
-        except Exception as e:
-            print(f"⚠️ Could not set icon: {e}")
+        except Exception:
+            pass
     
     def _create_layout(self):
-        self.grid_columnconfigure(0, weight=0)
+        self.grid_columnconfigure(0, weight=0, minsize=160)
         self.grid_columnconfigure(1, weight=1)
         self.grid_rowconfigure(0, weight=1)
         
         self._create_sidebar()
         
-        self.content_frame = ctk.CTkFrame(
-            self,
-            fg_color=COLORS["bg_primary"],
-            corner_radius=0
-        )
-        self.content_frame.grid(row=0, column=1, sticky="nsew")
-        self.content_frame.grid_columnconfigure(0, weight=1)
-        self.content_frame.grid_rowconfigure(0, weight=1)
+        # Right side: content + keyboard container
+        self.right_frame = ctk.CTkFrame(self, fg_color=COLORS["bg_primary"], corner_radius=0)
+        self.right_frame.grid(row=0, column=1, sticky="nsew")
+        self.right_frame.grid_columnconfigure(0, weight=1)
+        self.right_frame.grid_rowconfigure(0, weight=1)
+        self.right_frame.grid_rowconfigure(1, weight=0) # Keyboard row
+        
+        self.content_frame = ctk.CTkFrame(self.right_frame, fg_color=COLORS["bg_primary"], corner_radius=0)
+        self.content_frame.grid(row=0, column=0, sticky="nsew")
+        
+        # Create the embedded keyboard (hidden initially)
+        self.keyboard = VirtualKeyboard(self.right_frame)
+        
+        # Bind focus events for keyboard show/hide
+        self.bind_all("<FocusIn>", self._handle_widget_focus)
+        self.bind_all("<Button-1>", self._handle_global_click)
         
     def _handle_widget_focus(self, event):
-        """Global handler to trigger keyboard on focus - معالج عالمي لتفعيل الكيبورد"""
-        widget = event.widget
-        
-        # Check if the widget is an Entry or Textbox (or their internal components)
+        """Show keyboard when an input field gets focus."""
         try:
-            # CustomTkinter widgets often have internal entry components
-            widget_parent = self.nametowidget(widget.winfo_parent())
-            
-            is_input = isinstance(widget, (ctk.CTkEntry, ctk.CTkTextbox)) or \
-                       isinstance(widget_parent, (ctk.CTkEntry, ctk.CTkTextbox))
-            
-            if is_input:
-                target = widget if isinstance(widget, (ctk.CTkEntry, ctk.CTkTextbox)) else widget_parent
-                self._open_virtual_keyboard(target)
+            widget = event.widget
+            if isinstance(widget, (ctk.CTkEntry, ctk.CTkTextbox)):
+                if self.keyboard and not (self.keyboard.is_visible and self.keyboard.target == widget):
+                    self.keyboard.show(widget)
         except:
             pass
 
-    def _open_virtual_keyboard(self, target):
-        """Open the virtual keyboard for a target widget - فتح الكيبورد للعنصر المستهدف"""
-        # Close existing if open
-        if self.keyboard_window and self.keyboard_window.winfo_exists():
-            if self.keyboard_window.target == target:
-                return # Already open for this widget
-            self.keyboard_window.destroy()
-            
-        self.keyboard_window = VirtualKeyboard(self, target_widget=target)
+    def _handle_global_click(self, event):
+        """Hide keyboard when clicking outside input fields and keyboard."""
+        try:
+            if not self.keyboard or not self.keyboard.is_visible:
+                return
+            clicked = event.widget
+            # Check if click is inside keyboard or an input field
+            if self._is_child_of(clicked, self.keyboard):
+                return
+            if isinstance(clicked, (ctk.CTkEntry, ctk.CTkTextbox)):
+                return
+            # Check if parent is an entry (CTkEntry internal widgets)
+            parent = clicked
+            for _ in range(5):
+                parent = parent.master if hasattr(parent, 'master') else None
+                if parent is None:
+                    break
+                if isinstance(parent, (ctk.CTkEntry, ctk.CTkTextbox)):
+                    return
+                if parent == self.keyboard:
+                    return
+            self.keyboard.hide()
+        except:
+            pass
+    
+    def _is_child_of(self, widget, parent):
+        """Check if widget is a child of parent."""
+        try:
+            w = widget
+            while w:
+                if w == parent:
+                    return True
+                w = w.master if hasattr(w, 'master') else None
+            return False
+        except:
+            return False
     
     def _create_sidebar(self):
-        """Create sidebar navigation - إنشاء شريط التنقل الجانبي"""
+        """Create sidebar navigation"""
         nav_items = [
-            {"key": "home", "text": _("الرئيسية"), "icon": "🏠"},
-            {"key": "food", "text": _("تحليل الطعام"), "icon": "📷"},
-            {"key": "chat", "text": _("المحادثة"), "icon": "💬"},
-            {"key": "meds", "text": _("الأدوية"), "icon": "💊"},
-            {"key": "qr", "text": _("بوابة المريض"), "icon": "📱"},
+            {"key": "home", "text": "Home", "icon": "🏠"},
+            {"key": "food", "text": "Food Analysis", "icon": "📷"},
+            {"key": "chat", "text": "Chat", "icon": "💬"},
+            {"key": "meds", "text": "Medications", "icon": "💊"},
+            {"key": "qr", "text": "Patient Portal", "icon": "📱"},
         ]
         
         self.sidebar = SidebarNav(
@@ -164,22 +175,10 @@ class MainWindow(ctk.CTk):
         
         self.sidebar.set_voice_callback(self.toggle_voice_permission)
     
-    def _create_content_area(self):
-        self.content_frame = ctk.CTkFrame(
-            self,
-            fg_color=COLORS["bg_primary"],
-            corner_radius=0
-        )
-        self.content_frame.grid(row=0, column=1, sticky="nsew")
-        
-        self.content_frame.grid_columnconfigure(0, weight=1)
-        self.content_frame.grid_rowconfigure(0, weight=1)
     
     def _get_screen(self, key: str):
         if key in self.screens:
             return self.screens[key]
-            
-        print(f"⌛ Lazy loading screen: {key}")
         
         if key == "home":
             from gui.screens.home_screen import HomeScreen
@@ -206,10 +205,7 @@ class MainWindow(ctk.CTk):
         self.show_screen(key)
     
     def show_screen(self, screen_key: str):
-        """
-        Show a specific screen with lazy loading
-        عرض شاشة معينة مع التحميل المتأخر
-        """
+        """Show a specific screen with lazy loading"""
         if self.current_screen:
             current = self.screens.get(self.current_screen)
             if current:
@@ -219,7 +215,6 @@ class MainWindow(ctk.CTk):
         
         new_screen = self._get_screen(screen_key)
         if not new_screen:
-            print(f"❌ Screen not found: {screen_key}")
             return
             
         new_screen.grid(row=0, column=0, sticky="nsew")
@@ -237,11 +232,9 @@ class MainWindow(ctk.CTk):
         import threading
         
         def run_init():
-            print("🚀 Starting background services...")
             self._start_monitoring()
             self._start_medication_reminder()
             self._init_voice_assistant()
-            print("✅ Background services started.")
             
         threading.Thread(target=run_init, daemon=True).start()
     
@@ -260,7 +253,7 @@ class MainWindow(ctk.CTk):
         
     def _on_medication_alert(self, alert):
         med = alert.medication
-        display_message = alert.message if alert.message else f"حان وقت العلاج: {med.name}\nالجرعة: {med.dose}"
+        display_message = alert.message if alert.message else f"Time for medication: {med.name}\nDose: {med.dose}"
         voice_text = alert.voice_message if alert.voice_message else f"حان وقت العلاج، {med.name.split(' ')[0]}"
         
         self.after(500, lambda: voice_assistant.speak(voice_text, wait=False))
@@ -271,36 +264,16 @@ class MainWindow(ctk.CTk):
                 self.screens["meds"]._populate_medications()
                 
         self.after(0, lambda: self.show_alert(
-            title="تنبيه دواء ⏰", 
+            title="Medication Alert ⏰", 
             message=display_message, 
             alert_type="warning",
-            action_text="تم تناول الدواء",
+            action_text="Taken",
             action_callback=mark_taken
         ))
     
     def _toggle_fullscreen(self):
         current = self.attributes("-fullscreen")
         self.attributes("-fullscreen", not current)
-    
-    def _handle_widget_focus(self, event):
-        """Handle focus events to show the on-screen keyboard"""
-        try:
-            widget = event.widget
-            
-            # Check if the widget is a CTkEntry or CTkTextbox
-            if isinstance(widget, (ctk.CTkEntry, ctk.CTkTextbox)):
-                # If a keyboard is already open for THIS widget, don't reopen
-                if self.keyboard_window and self.keyboard_window.winfo_exists():
-                    if hasattr(self.keyboard_window, 'target') and self.keyboard_window.target == widget:
-                        return
-                    self.keyboard_window.destroy()
-                
-                # Show the new keyboard
-                from gui.widgets.keyboard import show_keyboard
-                self.keyboard_window = show_keyboard(self, widget)
-        except Exception as e:
-            if config.DEBUG_MODE:
-                print(f"⚠️ Focus handler error: {e}")
     
     def _init_voice_assistant(self):
         voice_assistant.set_command_callback(self._on_voice_command)
@@ -404,8 +377,8 @@ class MainWindow(ctk.CTk):
             formatted = vital_signs_monitor.get_formatted_vitals()
             if "home" in self.screens:
                 self.screens["home"].update_vitals(formatted)
-        except Exception as e:
-            print(f"⚠️ Failed to set sugar value: {e}")
+        except Exception:
+            pass
     
     def _set_sugar_value(self, value: str):
         try:
@@ -413,8 +386,8 @@ class MainWindow(ctk.CTk):
             qr_screen = self.screens.get("qr")
             if qr_screen and hasattr(qr_screen, "update_vitals_display"):
                 self.after(500, qr_screen.update_vitals_display)
-        except Exception as e:
-            print(f"⚠️ _set_sugar_value failed: {e}")
+        except Exception:
+            pass
     
     def _cmd_generate_qr(self):
         qr_screen = self.screens.get("qr")
@@ -464,7 +437,7 @@ class MainWindow(ctk.CTk):
         color = colors.get(alert_type, COLORS["info"])
         
         dialog = ctk.CTkToplevel(self)
-        dialog.title(_(title))
+        dialog.title(title)
         dialog.geometry("400x250")
         dialog.configure(fg_color=COLORS["bg_secondary"])
         dialog.attributes("-topmost", True)
@@ -487,7 +460,7 @@ class MainWindow(ctk.CTk):
         
         ctk.CTkLabel(
             dialog,
-            text=_(message),
+            text=message,
             font=(FONTS["family"], FONTS["size_md"]),
             text_color=COLORS["text_primary"],
             wraplength=350
@@ -506,16 +479,16 @@ class MainWindow(ctk.CTk):
                 
             ctk.CTkButton(
                 btn_frame,
-                text=_(action_text),
+                text=action_text,
                 font=(FONTS["family"], FONTS["size_md"]),
                 fg_color=COLORS["success"],
                 hover_color="#059669",
                 command=on_action
             ).pack(side="right", expand=True, padx=5)
             
-            dismiss_text = "تأجيل"
+            dismiss_text = "Postpone"
         else:
-            dismiss_text = "حسناً"
+            dismiss_text = "OK"
         
         ctk.CTkButton(
             btn_frame,
@@ -529,11 +502,7 @@ class MainWindow(ctk.CTk):
 
 def run_app():
     if not config.validate():
-        print("❌ Configuration validation failed")
         return
-    
-    if config.DEBUG_MODE:
-        config.print_config()
     
     use_new = False
     try:
@@ -546,13 +515,12 @@ def run_app():
         use_new = True
     
     if use_new:
-        print("🔀 Launching new PySide6 GUI")
         try:
             from gui_new import main as new_gui_main
             new_gui_main.run()
             return
-        except Exception as e:
-            print(f"⚠️ Failed to launch new GUI: {e}")
+        except Exception:
+            pass
     
     app = MainWindow()
     app.mainloop()

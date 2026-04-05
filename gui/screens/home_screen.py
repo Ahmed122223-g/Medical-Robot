@@ -1,12 +1,7 @@
 """
 AI Robot Operating System - Home Screen
-نظام تشغيل الروبوت الطبي الذكي - الشاشة الرئيسية
-
-The main dashboard showing vital signs, quick actions,
+Main dashboard showing vital signs, quick actions,
 and upcoming medication reminders.
-
-لوحة المعلومات الرئيسية التي تعرض العلامات الحيوية والإجراءات السريعة
-وتذكيرات الأدوية القادمة.
 """
 
 import customtkinter as ctk
@@ -41,7 +36,6 @@ class HomeScreen(ctk.CTkFrame):
         self.grid_columnconfigure(0, weight=1)
         self.grid_rowconfigure(0, weight=1)
         
-        # Main scrollable container
         self.scroll_container = ctk.CTkScrollableFrame(
             self,
             fg_color="transparent",
@@ -63,15 +57,15 @@ class HomeScreen(ctk.CTkFrame):
         )
         self.header_frame.grid(row=0, column=0, sticky="ew", padx=20, pady=(10, 5))
         self.header_frame.grid_columnconfigure(0, weight=1)
-        self.header_frame.grid_columnconfigure(1, weight=1)
+        self.header_frame.grid_columnconfigure(1, weight=0) # Date/Time usually right-aligned
         
         self.greeting_frame = ctk.CTkFrame(self.header_frame, fg_color="transparent")
         self.greeting_frame.grid(row=0, column=0, sticky="w")
         
         self.greeting_label = ctk.CTkLabel(
             self.greeting_frame,
-            text=_(f"{get_time_of_day()}! 👋"),
-            font=(FONTS["family"], FONTS["size_2xl"], "bold"),
+            text=f"{get_time_of_day()}! 👋",
+            font=(FONTS["family_en"], FONTS["size_2xl"], "bold"),
             text_color=COLORS["text_primary"],
             anchor="w"
         )
@@ -79,8 +73,8 @@ class HomeScreen(ctk.CTkFrame):
         
         self.subtitle_label = ctk.CTkLabel(
             self.greeting_frame,
-            text=_("كيف حالك اليوم؟"),
-            font=(FONTS["family"], FONTS["size_md"]),
+            text="How are you feeling today?",
+            font=(FONTS["family_en"], FONTS["size_md"]),
             text_color=COLORS["text_secondary"],
             anchor="w"
         )
@@ -101,7 +95,7 @@ class HomeScreen(ctk.CTkFrame):
         self.date_label = ctk.CTkLabel(
             self.datetime_frame,
             text=get_arabic_date(),
-            font=(FONTS["family"], FONTS["size_sm"]),
+            font=(FONTS["family_en"], FONTS["size_sm"]),
             text_color=COLORS["text_secondary"],
             anchor="e"
         )
@@ -116,41 +110,41 @@ class HomeScreen(ctk.CTkFrame):
         
         self.vitals_title = ctk.CTkLabel(
             self.vitals_frame,
-            text=_("📊 العلامات الحيوية"),
-            font=(FONTS["family"], FONTS["size_lg"], "bold"),
+            text="📊 Vital Signs",
+            font=(FONTS["family_en"], FONTS["size_lg"], "bold"),
             text_color=COLORS["text_primary"],
-            anchor="e"
+            anchor="w"
         )
-        self.vitals_title.pack(anchor="e", pady=(0, 10))
+        self.vitals_title.pack(anchor="w", pady=(0, 10))
         
         self.cards_container = ctk.CTkFrame(
             self.vitals_frame,
             fg_color="transparent"
         )
-        self.cards_container.pack(fill="x")
+        self.cards_container.pack(fill="x", expand=True)
         
         for i in range(3):
-            self.cards_container.grid_columnconfigure(i, weight=1)
+            self.cards_container.grid_columnconfigure(i, weight=1, uniform="vitals")
         
         self.bp_card = VitalCard(
             self.cards_container,
-            title=_("ضغط الدم"),
+            title="Blood Pressure",
             icon="🩸",
             value="--/--",
             unit="mmHg",
-            status=_("جاري القياس..."),
+            status="Measuring...",
             color=COLORS["danger"]
         )
-        self.bp_card.grid(row=0, column=2, padx=5, pady=5, sticky="nsew")
+        self.bp_card.grid(row=0, column=0, padx=5, pady=5, sticky="nsew")
         self.vital_cards["bp"] = self.bp_card
         
         self.hr_card = VitalCard(
             self.cards_container,
-            title="نبضات القلب",
+            title="Heart Rate",
             icon="💓",
             value="--",
-            unit="نبضة/دقيقة",
-            status="جاري القياس...",
+            unit="bpm",
+            status="Measuring...",
             color=COLORS["danger"]
         )
         self.hr_card.grid(row=0, column=1, padx=5, pady=5, sticky="nsew")
@@ -158,14 +152,14 @@ class HomeScreen(ctk.CTkFrame):
         
         self.temp_card = VitalCard(
             self.cards_container,
-            title="درجة الحرارة",
+            title="Temperature",
             icon="🌡️",
             value="--",
             unit="°C",
-            status="جاري القياس...",
+            status="Measuring...",
             color=COLORS["warning"]
         )
-        self.temp_card.grid(row=0, column=0, padx=5, pady=5, sticky="nsew")
+        self.temp_card.grid(row=0, column=2, padx=5, pady=5, sticky="nsew")
         self.vital_cards["temp"] = self.temp_card
     
     def _create_quick_actions(self):
@@ -177,48 +171,48 @@ class HomeScreen(ctk.CTkFrame):
         
         self.actions_title = ctk.CTkLabel(
             self.actions_frame,
-            text="⚡ الإجراءات السريعة",
-            font=(FONTS["family"], FONTS["size_lg"], "bold"),
+            text="⚡ Quick Actions",
+            font=(FONTS["family_en"], FONTS["size_lg"], "bold"),
             text_color=COLORS["text_primary"],
-            anchor="e"
+            anchor="w"
         )
-        self.actions_title.pack(anchor="e", pady=(0, 10))
+        self.actions_title.pack(anchor="w", pady=(0, 10))
         
         self.actions_container = ctk.CTkFrame(
             self.actions_frame,
             fg_color="transparent"
         )
-        self.actions_container.pack(fill="x")
+        self.actions_container.pack(fill="x", expand=True)
         
         for i in range(3):
-            self.actions_container.grid_columnconfigure(i, weight=1)
+            self.actions_container.grid_columnconfigure(i, weight=1, uniform="actions")
 
         self.meds_btn = QuickActionButton(
             self.actions_container,
-            text=_("الأدوية"),
+            text="Medications",
             icon="💊",
             color=COLORS["warning"],
             command=lambda: self._navigate_to("meds")
         )
         self.meds_btn.grid(row=0, column=0, padx=5, pady=5, sticky="ew")
 
-        self.chat_btn = QuickActionButton(
-            self.actions_container,
-            text=_("المحادثة"),
-            icon="💬",
-            color=COLORS["primary"],
-            command=lambda: self._navigate_to("chat")
-        )
-        self.chat_btn.grid(row=0, column=2, padx=5, pady=5, sticky="ew")
-
         self.food_btn = QuickActionButton(
             self.actions_container,
-            text=_("تحليل الطعام"),
+            text="Food Analysis",
             icon="📷",
             color=COLORS["success"],
             command=lambda: self._navigate_to("food")
         )
         self.food_btn.grid(row=0, column=1, padx=5, pady=5, sticky="ew")
+
+        self.chat_btn = QuickActionButton(
+            self.actions_container,
+            text="Chat",
+            icon="💬",
+            color=COLORS["primary"],
+            command=lambda: self._navigate_to("chat")
+        )
+        self.chat_btn.grid(row=0, column=2, padx=5, pady=5, sticky="ew")
 
     def _create_alerts_section(self):
         self.alerts_frame = ctk.CTkFrame(
@@ -232,12 +226,12 @@ class HomeScreen(ctk.CTkFrame):
         
         self.alerts_title = ctk.CTkLabel(
             self.alerts_frame,
-            text="⏰ الأدوية القادمة",
-            font=(FONTS["family"], FONTS["size_lg"], "bold"),
+            text="⏰ Upcoming Medications",
+            font=(FONTS["family_en"], FONTS["size_lg"], "bold"),
             text_color=COLORS["text_primary"],
-            anchor="e"
+            anchor="w"
         )
-        self.alerts_title.pack(anchor="e", padx=20, pady=(15, 10))
+        self.alerts_title.pack(anchor="w", padx=20, pady=(15, 10))
         
         self.alerts_list = ctk.CTkScrollableFrame(
             self.alerts_frame,
@@ -245,9 +239,9 @@ class HomeScreen(ctk.CTkFrame):
         )
         self.alerts_list.pack(fill="both", expand=True, padx=10, pady=(0, 15))
         
-        self._add_medication_alert("Concor 5mg", "08:00", "صباحاً", pending=True)
-        self._add_medication_alert("Aspirin Protect 100mg", "14:00", "بعد الغداء", pending=True)
-        self._add_medication_alert("Zestril 10mg", "20:00", "مساءً", pending=True)
+        self._add_medication_alert("Concor 5mg", "08:00", "Morning", pending=True)
+        self._add_medication_alert("Aspirin Protect 100mg", "14:00", "After Lunch", pending=True)
+        self._add_medication_alert("Zestril 10mg", "20:00", "Evening", pending=True)
     
     def _add_medication_alert(self, name: str, time: str, timing: str, pending: bool = True):
         alert_frame = ctk.CTkFrame(
@@ -264,28 +258,28 @@ class HomeScreen(ctk.CTkFrame):
             text_color=COLORS["primary"],
             width=60
         )
-        time_label.pack(side="right", padx=15, pady=10)
+        time_label.pack(side="left", padx=15, pady=10)
         
         info_frame = ctk.CTkFrame(alert_frame, fg_color="transparent")
-        info_frame.pack(side="right", fill="x", expand=True, pady=10)
+        info_frame.pack(side="left", fill="x", expand=True, pady=10)
         
         name_label = ctk.CTkLabel(
             info_frame,
             text=name,
-            font=(FONTS["family"], FONTS["size_md"], "bold"),
+            font=(FONTS["family_en"], FONTS["size_md"], "bold"),
             text_color=COLORS["text_primary"],
-            anchor="e"
+            anchor="w"
         )
-        name_label.pack(anchor="e")
+        name_label.pack(anchor="w")
         
         timing_label = ctk.CTkLabel(
             info_frame,
             text=timing,
-            font=(FONTS["family"], FONTS["size_sm"]),
+            font=(FONTS["family_en"], FONTS["size_sm"]),
             text_color=COLORS["text_muted"],
-            anchor="e"
+            anchor="w"
         )
-        timing_label.pack(anchor="e")
+        timing_label.pack(anchor="w")
         
         status_icon = "⏳" if pending else "✅"
         icon_color = COLORS["warning"] if pending else COLORS["success"]
@@ -296,7 +290,7 @@ class HomeScreen(ctk.CTkFrame):
             font=(FONTS["family"], FONTS["size_xl"]),
             text_color=icon_color
         )
-        icon_label.pack(side="left", padx=15)
+        icon_label.pack(side="right", padx=15)
     
     def _navigate_to(self, screen: str):
         if self.app:
@@ -316,7 +310,7 @@ class HomeScreen(ctk.CTkFrame):
             self.bp_card.update_value(
                 bp["value"],
                 bp["unit"],
-                _(bp["status"])
+                bp["status"]
             )
         
         if "heart_rate" in vitals_data:
@@ -324,7 +318,7 @@ class HomeScreen(ctk.CTkFrame):
             self.hr_card.update_value(
                 hr["value"],
                 hr["unit"],
-                _(hr["status"])
+                hr["status"]
             )
         
         if "temperature" in vitals_data:
@@ -332,5 +326,5 @@ class HomeScreen(ctk.CTkFrame):
             self.temp_card.update_value(
                 temp["value"],
                 temp["unit"],
-                _(temp["status"])
+                temp["status"]
             )
