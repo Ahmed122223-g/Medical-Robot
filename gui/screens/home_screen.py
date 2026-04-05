@@ -123,8 +123,8 @@ class HomeScreen(ctk.CTkFrame):
         )
         self.cards_container.pack(fill="x", expand=True)
         
-        for i in range(3):
-            self.cards_container.grid_columnconfigure(i, weight=1, uniform="vitals")
+        self.cards_container.grid_columnconfigure(0, weight=1)
+        self.cards_container.grid_columnconfigure(1, weight=1)
         
         self.bp_card = VitalCard(
             self.cards_container,
@@ -159,7 +159,7 @@ class HomeScreen(ctk.CTkFrame):
             status="Measuring...",
             color=COLORS["warning"]
         )
-        self.temp_card.grid(row=0, column=2, padx=5, pady=5, sticky="nsew")
+        self.temp_card.grid(row=1, column=0, columnspan=2, padx=5, pady=5, sticky="nsew")
         self.vital_cards["temp"] = self.temp_card
     
     def _create_quick_actions(self):
@@ -184,8 +184,8 @@ class HomeScreen(ctk.CTkFrame):
         )
         self.actions_container.pack(fill="x", expand=True)
         
-        for i in range(3):
-            self.actions_container.grid_columnconfigure(i, weight=1, uniform="actions")
+        self.actions_container.grid_columnconfigure(0, weight=1)
+        self.actions_container.grid_columnconfigure(1, weight=1)
 
         self.meds_btn = QuickActionButton(
             self.actions_container,
@@ -212,7 +212,7 @@ class HomeScreen(ctk.CTkFrame):
             color=COLORS["primary"],
             command=lambda: self._navigate_to("chat")
         )
-        self.chat_btn.grid(row=0, column=2, padx=5, pady=5, sticky="ew")
+        self.chat_btn.grid(row=1, column=0, columnspan=2, padx=5, pady=5, sticky="ew")
 
     def _create_alerts_section(self):
         self.alerts_frame = ctk.CTkFrame(
