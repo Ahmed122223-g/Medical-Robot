@@ -31,7 +31,7 @@ except ImportError:
 
 try:
     import pygame
-    pygame.mixer.init()
+    # Deferred init to avoid ALSA startup freeze on Raspberry Pi
     PYGAME_AVAILABLE = True
 except:
     PYGAME_AVAILABLE = False
@@ -151,6 +151,8 @@ class VoiceAssistant:
     def _play_audio(self, filepath: str):
         if not PYGAME_AVAILABLE: return
         try:
+            if not pygame.mixer.get_init():
+                pygame.mixer.init()
             pygame.mixer.music.load(filepath)
             pygame.mixer.music.play()
             while pygame.mixer.music.get_busy(): time.sleep(0.1)

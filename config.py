@@ -30,8 +30,11 @@ class Config:
     
     APP_LANGUAGE: str = os.getenv('APP_LANGUAGE', 'en')
     APP_FULLSCREEN: bool = os.getenv('APP_FULLSCREEN', 'true').lower() == 'true'
-    SCREEN_WIDTH: int = int(os.getenv('SCREEN_WIDTH', '800'))
-    SCREEN_HEIGHT: int = int(os.getenv('SCREEN_HEIGHT', '480'))
+    
+    _default_width = '1200' if platform.system() == 'Windows' else '800'
+    _default_height = '800' if platform.system() == 'Windows' else '480'
+    SCREEN_WIDTH: int = int(os.getenv('SCREEN_WIDTH', _default_width))
+    SCREEN_HEIGHT: int = int(os.getenv('SCREEN_HEIGHT', _default_height))
     
     DEBUG_MODE: bool = os.getenv('DEBUG_MODE', 'false').lower() == 'true'
     

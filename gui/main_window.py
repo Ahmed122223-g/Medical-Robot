@@ -46,9 +46,15 @@ class MainWindow(ctk.CTk):
         
         self.title("AI Medical Robot")
         self.geometry(f"{config.SCREEN_WIDTH}x{config.SCREEN_HEIGHT}")
-        
         if config.APP_FULLSCREEN:
-            self.attributes("-fullscreen", True)
+            import sys
+            if sys.platform == "win32":
+                # Calculate screen dimensions and set it directly to avoid the 'zoomed' flash animation
+                w = self.winfo_screenwidth()
+                h = self.winfo_screenheight()
+                self.geometry(f"{w}x{h}+0+0")
+            else:
+                self.attributes("-fullscreen", True)
         
         self.minsize(800, 480)
         
@@ -99,6 +105,8 @@ class MainWindow(ctk.CTk):
         
         self.content_frame = ctk.CTkFrame(self.right_frame, fg_color=COLORS["bg_primary"], corner_radius=0)
         self.content_frame.grid(row=0, column=0, sticky="nsew")
+        self.content_frame.grid_columnconfigure(0, weight=1)
+        self.content_frame.grid_rowconfigure(0, weight=1)
         
         # Create the embedded keyboard (hidden initially)
         self.keyboard = VirtualKeyboard(self.right_frame)
@@ -174,7 +182,6 @@ class MainWindow(ctk.CTk):
         self.sidebar.grid(row=0, column=0, sticky="nsew")
         
         self.sidebar.set_voice_callback(self.toggle_voice_permission)
-    
     
     def _get_screen(self, key: str):
         if key in self.screens:

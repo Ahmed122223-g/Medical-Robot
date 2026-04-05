@@ -109,6 +109,11 @@ ICON_SIZES = {
 def configure_customtkinter():
     ctk.set_appearance_mode("light")
     ctk.set_default_color_theme("blue")
+    
+    import platform
+    if platform.system() == "Windows":
+        ctk.set_widget_scaling(1.2)
+        ctk.set_window_scaling(1.2)
 
 
 def get_font(size: str = "md", weight: str = "normal") -> tuple:
