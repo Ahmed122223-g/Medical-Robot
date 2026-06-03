@@ -99,25 +99,31 @@ class ArduinoComm:
         except Exception:
             return False
     
-    def parse_data(self, data_line: str) -> Optional[VitalSigns]:
-        """Parse Arduino data line. Format: BP:120/80,HR:75,TEMP:36.5"""
+    def update_vitals(self, data_line: str) -> bool:
+        """Update existing vitals from Arduino data line. Format: BP:120/80,HR:75,TEMP:36.5"""
         try:
-            vitals = VitalSigns(timestamp=time.time())
+            updated = False
             parts = data_line.strip().split(',')
             
-            for part in parts:
-                if part.startswith('BP:'):
-                    bp_values = part[3:].split('/')
-                    vitals.systolic = int(bp_values[0])
-                    vitals.diastolic = int(bp_values[1])
-                elif part.startswith('HR:'):
-                    vitals.heart_rate = int(part[3:])
-                elif part.startswith('TEMP:'):
-                    vitals.temperature = float(part[5:])
+            with self._lock:
+                self._current_vitals.timestamp = time.time()
+                for part in parts:
+                    if part.startswith('BP:'):
+                        bp_values = part[3:].split('/')
+                        if len(bp_values) == 2:
+                            self._current_vitals.systolic = int(bp_values[0])
+                            self._current_vitals.diastolic = int(bp_values[1])
+                            updated = True
+                    elif part.startswith('HR:'):
+                        self._current_vitals.heart_rate = int(part[3:])
+                        updated = True
+                    elif part.startswith('TEMP:'):
+                        self._current_vitals.temperature = float(part[5:])
+                        updated = True
             
-            return vitals
+            return updated
         except (ValueError, IndexError):
-            return None
+            return False
     
     def _reading_loop(self):
         """Main reading loop (runs in separate thread)"""
@@ -125,13 +131,13 @@ class ArduinoComm:
             try:
                 if SERIAL_AVAILABLE and self.serial_conn and self.serial_conn.is_open:
                     if self.serial_conn.in_waiting > 0:
-                        line = self.serial_conn.readline().decode('utf-8').strip()
+                        line = self.serial_conn.readline().decode('utf-8', errors='ignore').strip()
                         if line:
-                            vitals = self.parse_data(line)
-                            if vitals:
+                            if self.update_vitals(line):
                                 with self._lock:
-                                    self._current_vitals = vitals
-                                self._notify_callbacks(vitals)
+                                    import copy
+                                    vitals_copy = copy.copy(self._current_vitals)
+                                self._notify_callbacks(vitals_copy)
                 
                 time.sleep(0.1)  
             except Exception:
@@ -181,8 +187,7 @@ class ArduinoComm:
     def test(self):
         """Test connection and data parsing"""
         test_data = "BP:130/85,HR:78,TEMP:36.8"
-        vitals = self.parse_data(test_data)
-        if vitals:
+        if self.update_vitals(test_data):
             return True
         return False
 
