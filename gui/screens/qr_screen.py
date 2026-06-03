@@ -82,10 +82,7 @@ class QRCodeScreen(ctk.CTkFrame):
         if not qrcode:
             return
         vitals = vital_signs_monitor.get_current_vitals()
-        if vitals.systolic > 0:
-            systolic, diastolic, temp = vitals.systolic, vitals.diastolic, vitals.temperature
-        else:
-            systolic, diastolic, temp = 120, 80, 37.0
+        systolic, diastolic, temp = vitals.systolic, vitals.diastolic, vitals.temperature
         weight = self.weight_entry.get()
         sugar = self.sugar_entry.get()
         try:
