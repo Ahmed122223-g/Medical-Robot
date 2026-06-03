@@ -17,6 +17,7 @@ from gui.widgets.nav_button import QuickActionButton
 from core.utils import get_arabic_date, get_arabic_time, get_time_of_day
 from core.arabic_utils import fix_arabic as _
 from modules.medication_reminder import medication_reminder
+from modules.vital_signs import vital_signs_monitor
 
 
 class HomeScreen(ctk.CTkFrame):
@@ -35,6 +36,7 @@ class HomeScreen(ctk.CTkFrame):
         
         self._create_layout()
         self._start_time_update()
+        self._start_vitals_polling()
         
         self.bind("<Configure>", self._on_resize)
     
@@ -417,6 +419,19 @@ class HomeScreen(ctk.CTkFrame):
                 temp["unit"],
                 temp["status"]
             )
+    
+    def _start_vitals_polling(self):
+        """Poll vital signs every 1 second for real-time display."""
+        self._poll_vitals()
+    
+    def _poll_vitals(self):
+        """Read latest vitals from monitor and update cards every second."""
+        try:
+            formatted = vital_signs_monitor.get_formatted_vitals()
+            self.update_vitals(formatted)
+        except Exception:
+            pass
+        self._vitals_poll_id = self.after(1000, self._poll_vitals)
     
     def on_show(self):
         """Refresh medications when screen is shown."""

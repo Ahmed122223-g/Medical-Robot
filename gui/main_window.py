@@ -284,7 +284,7 @@ class MainWindow(ctk.CTk):
     def _on_vitals_update(self, vitals):
         if "home" in self.screens:
             formatted = vital_signs_monitor.get_formatted_vitals()
-            self.screens["home"].update_vitals(formatted)
+            self.after(0, lambda f=formatted: self.screens["home"].update_vitals(f))
             
     def _start_medication_reminder(self):
         medication_reminder.add_callback(self._on_medication_alert)
@@ -545,24 +545,6 @@ class MainWindow(ctk.CTk):
 def run_app():
     if not config.validate():
         return
-    
-    use_new = False
-    try:
-        import os
-        if os.getenv("USE_NEW_UI") in ("1", "true", "True"):
-            use_new = True
-    except:
-        pass
-    if getattr(config, "NEW_UI", False):
-        use_new = True
-    
-    if use_new:
-        try:
-            from gui_new import main as new_gui_main
-            new_gui_main.run()
-            return
-        except Exception:
-            pass
     
     app = MainWindow()
     app.mainloop()

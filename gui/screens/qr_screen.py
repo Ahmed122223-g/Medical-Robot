@@ -42,6 +42,8 @@ class QRCodeScreen(ctk.CTkFrame):
         ctk.CTkLabel(vf, text="Device Readings (Auto)", font=(FONTS["family_en"], 16, "bold"), text_color="#3b82f6").pack(pady=10)
         self.bp_label = ctk.CTkLabel(vf, text="Blood Pressure: --/--", font=(FONTS["family_en"], 14))
         self.bp_label.pack(pady=5)
+        self.hr_label = ctk.CTkLabel(vf, text="Heart Rate: -- bpm", font=(FONTS["family_en"], 14))
+        self.hr_label.pack(pady=5)
         self.temp_label = ctk.CTkLabel(vf, text="Temperature: -- °C", font=(FONTS["family_en"], 14))
         self.temp_label.pack(pady=5)
         ctk.CTkButton(vf, text="Refresh Readings", command=self.update_vitals_display, width=120).pack(pady=10)
@@ -74,9 +76,22 @@ class QRCodeScreen(ctk.CTkFrame):
     def update_vitals_display(self):
         vitals = vital_signs_monitor.get_current_vitals()
         self.bp_label.configure(text=f"Blood Pressure: {vitals.systolic}/{vitals.diastolic} mmHg")
+        self.hr_label.configure(text=f"Heart Rate: {vitals.heart_rate} bpm")
         self.temp_label.configure(text=f"Temperature: {vitals.temperature} °C")
-        self.bp_label.configure(text_color="#10b981")
-        self.after(500, lambda: self.bp_label.configure(text_color=("black", "white")))
+    
+    def _start_vitals_polling(self):
+        """Auto-refresh vitals every 1 second."""
+        self.update_vitals_display()
+        self._poll_id = self.after(1000, self._start_vitals_polling)
+    
+    def on_show(self):
+        """Start auto-refresh when screen is shown."""
+        self._start_vitals_polling()
+    
+    def on_hide(self):
+        """Stop auto-refresh when screen is hidden."""
+        if hasattr(self, '_poll_id'):
+            self.after_cancel(self._poll_id)
 
     def generate_qr(self):
         if not qrcode:
