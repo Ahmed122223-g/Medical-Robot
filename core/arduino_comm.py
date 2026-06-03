@@ -108,6 +108,7 @@ class ArduinoComm:
             with self._lock:
                 self._current_vitals.timestamp = time.time()
                 for part in parts:
+                    part = part.strip()
                     if part.startswith('BP:'):
                         bp_values = part[3:].split('/')
                         if len(bp_values) == 2:
