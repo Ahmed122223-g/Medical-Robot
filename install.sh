@@ -24,6 +24,21 @@ pip install -r requirements.txt --prefer-binary
 # 5. Setup Desktop Shortcut & Autostart
 echo "🖥️ Creating desktop shortcut and enabling autostart..."
 mkdir -p ~/.config/autostart
+
+CURRENT_DIR=$(pwd)
+
+cat <<EOF > airobot.desktop
+[Desktop Entry]
+Name=AI Robot OS
+Comment=نظام تشغيل الروبوت الطبي الذكي
+Exec=bash $CURRENT_DIR/run.sh
+Icon=$CURRENT_DIR/assets/icons/app_icon.png
+Terminal=false
+Type=Application
+Categories=Medical;Utility;
+Path=$CURRENT_DIR
+EOF
+
 cp airobot.desktop ~/Desktop/
 cp airobot.desktop ~/.config/autostart/
 chmod +x ~/Desktop/airobot.desktop
