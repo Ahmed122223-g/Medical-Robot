@@ -1,5 +1,5 @@
 {
-    "last_reset_date": "2026-04-05",
+    "last_reset_date": "2026-06-03",
     "medications": {
         "Glucophage XR 1000mg": {
             "taken_today": false,
@@ -10,14 +10,14 @@
         },
         "Concor 5mg": {
             "taken_today": false,
-            "last_taken": null,
+            "last_taken": "2026-04-21T08:28:05.772257",
             "is_active": true,
             "calculated_dose": null,
             "calculation_sugar": null
         },
         "Zestril 10mg": {
             "taken_today": false,
-            "last_taken": null,
+            "last_taken": "2026-04-05T20:04:18.006352",
             "is_active": true,
             "calculated_dose": null,
             "calculation_sugar": null

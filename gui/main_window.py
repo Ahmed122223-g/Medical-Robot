@@ -15,7 +15,7 @@ if str(root) not in sys.path:
 
 sys.path.append('..')
 from config import config
-from gui.styles.theme import COLORS, FONTS, RADIUS, configure_customtkinter
+from gui.styles.theme import COLORS, FONTS, RADIUS, configure_customtkinter, responsive
 from gui.widgets.nav_button import SidebarNav
 from gui.screens.home_screen import HomeScreen
 from gui.screens.food_screen import FoodScreen
@@ -69,16 +69,48 @@ class MainWindow(ctk.CTk):
         
         self._create_layout()
         
+        # Bind resize to update responsive manager
+        self.bind("<Configure>", self._on_window_resize)
+        self._resize_timer = None
+        
         self.after(100, self._start_services_async)
         
         self.show_screen("home")
         
         self.after(1000, self._play_welcome)
         
+        # Initialize responsive manager with initial size
+        self.after(200, self._init_responsive)
+        
         self.protocol("WM_DELETE_WINDOW", self._on_close)
         
         self.bind("<Escape>", lambda e: self._toggle_fullscreen())
         self.bind("<F11>", lambda e: self._toggle_fullscreen())
+    
+    def _init_responsive(self):
+        """Initialize responsive manager with current content area size."""
+        w = self.content_frame.winfo_width()
+        h = self.content_frame.winfo_height()
+        if w > 100 and h > 100:
+            responsive.update(w, h)
+    
+    def _on_window_resize(self, event=None):
+        """Debounced window resize handler to update responsive manager."""
+        if event and event.widget != self:
+            return
+        if self._resize_timer:
+            self.after_cancel(self._resize_timer)
+        self._resize_timer = self.after(100, self._apply_resize)
+    
+    def _apply_resize(self):
+        """Apply resize: update responsive manager with current content area dims."""
+        try:
+            w = self.content_frame.winfo_width()
+            h = self.content_frame.winfo_height()
+            if w > 100 and h > 100:
+                responsive.update(w, h)
+        except Exception:
+            pass
     
     def _set_icon(self):
         try:
@@ -90,7 +122,7 @@ class MainWindow(ctk.CTk):
             pass
     
     def _create_layout(self):
-        self.grid_columnconfigure(0, weight=0, minsize=160)
+        self.grid_columnconfigure(0, weight=0, minsize=140)
         self.grid_columnconfigure(1, weight=1)
         self.grid_rowconfigure(0, weight=1)
         
@@ -177,7 +209,7 @@ class MainWindow(ctk.CTk):
             items=nav_items,
             on_select=self._on_nav_select,
             on_exit=self._on_close,
-            width=160
+            width=140
         )
         self.sidebar.grid(row=0, column=0, sticky="nsew")
         
@@ -434,6 +466,7 @@ class MainWindow(ctk.CTk):
         self.destroy()
     
     def show_alert(self, title: str, message: str, alert_type: str = "info", action_text: str = None, action_callback = None):
+        r = responsive
         colors = {
             "info": COLORS["info"],
             "success": COLORS["success"],
@@ -445,15 +478,17 @@ class MainWindow(ctk.CTk):
         
         dialog = ctk.CTkToplevel(self)
         dialog.title(title)
-        dialog.geometry("400x250")
+        dw = r.size(380)
+        dh = r.size(230)
+        dialog.geometry(f"{dw}x{dh}")
         dialog.configure(fg_color=COLORS["bg_secondary"])
         dialog.attributes("-topmost", True)
         dialog.transient(self)
         dialog.grab_set()
         
         dialog.update_idletasks()
-        x = (self.winfo_screenwidth() // 2) - 200
-        y = (self.winfo_screenheight() // 2) - 125
+        x = (self.winfo_screenwidth() // 2) - (dw // 2)
+        y = (self.winfo_screenheight() // 2) - (dh // 2)
         dialog.geometry(f"+{x}+{y}")
         
         icons = {"info": "ℹ️", "success": "✅", "warning": "⚠️", "error": "❌"}
@@ -462,19 +497,19 @@ class MainWindow(ctk.CTk):
         ctk.CTkLabel(
             dialog,
             text=icon,
-            font=(FONTS["family"], 40),
-        ).pack(pady=(20, 10))
+            font=r.font_ar(base_size=32),
+        ).pack(pady=(r.pad(12), r.pad(6)))
         
         ctk.CTkLabel(
             dialog,
             text=message,
-            font=(FONTS["family"], FONTS["size_md"]),
+            font=r.font(base_size=12),
             text_color=COLORS["text_primary"],
-            wraplength=350
-        ).pack(pady=10)
+            wraplength=r.size(320)
+        ).pack(pady=r.pad(6))
         
         btn_frame = ctk.CTkFrame(dialog, fg_color="transparent")
-        btn_frame.pack(pady=20, fill="x", padx=20)
+        btn_frame.pack(pady=r.pad(12), fill="x", padx=r.pad(15))
         
         def close_dialog():
             dialog.destroy()
@@ -487,11 +522,11 @@ class MainWindow(ctk.CTk):
             ctk.CTkButton(
                 btn_frame,
                 text=action_text,
-                font=(FONTS["family"], FONTS["size_md"]),
+                font=r.font(base_size=12),
                 fg_color=COLORS["success"],
                 hover_color="#059669",
                 command=on_action
-            ).pack(side="right", expand=True, padx=5)
+            ).pack(side="right", expand=True, padx=r.pad(4))
             
             dismiss_text = "Postpone"
         else:
@@ -500,11 +535,11 @@ class MainWindow(ctk.CTk):
         ctk.CTkButton(
             btn_frame,
             text=dismiss_text,
-            font=(FONTS["family"], FONTS["size_md"]),
+            font=r.font(base_size=12),
             fg_color=color if not action_text else "#6b7280",
             hover_color=color if not action_text else "#4b5563",
             command=close_dialog
-        ).pack(side="left", expand=True, padx=5)
+        ).pack(side="left", expand=True, padx=r.pad(4))
 
 
 def run_app():

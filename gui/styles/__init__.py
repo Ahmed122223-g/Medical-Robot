@@ -1,1 +1,1 @@
-from .theme import COLORS, FONTS, RADIUS, configure_customtkinter
+from .theme import COLORS, FONTS, RADIUS, configure_customtkinter, responsive

@@ -106,14 +106,101 @@ ICON_SIZES = {
 }
 
 
+class ResponsiveManager:
+    """
+    Calculates proportional sizes based on window dimensions.
+    All sizes scale like SVG - no pixelation, proportional to screen.
+    
+    Reference resolution: 1200x800 (design baseline).
+    """
+    
+    # Design baseline
+    BASE_W = 1200
+    BASE_H = 800
+    
+    def __init__(self):
+        self._w = self.BASE_W
+        self._h = self.BASE_H
+        self._scale_x = 1.0
+        self._scale_y = 1.0
+        self._scale = 1.0  # min of x,y for uniform scaling
+    
+    def update(self, width: int, height: int):
+        """Update dimensions and recalculate scale factors."""
+        if width < 100 or height < 100:
+            return
+        self._w = width
+        self._h = height
+        self._scale_x = width / self.BASE_W
+        self._scale_y = height / self.BASE_H
+        self._scale = min(self._scale_x, self._scale_y)
+    
+    @property
+    def w(self) -> int:
+        return self._w
+    
+    @property
+    def h(self) -> int:
+        return self._h
+    
+    @property
+    def scale(self) -> float:
+        return self._scale
+    
+    @property
+    def scale_x(self) -> float:
+        return self._scale_x
+    
+    @property
+    def scale_y(self) -> float:
+        return self._scale_y
+    
+    def font_size(self, base_size: int) -> int:
+        """Scale a font size proportionally. Minimum 8."""
+        return max(8, int(base_size * self._scale))
+    
+    def size(self, base_size: int) -> int:
+        """Scale a pixel dimension proportionally. Minimum 1."""
+        return max(1, int(base_size * self._scale))
+    
+    def size_x(self, base_size: int) -> int:
+        """Scale horizontal dimension."""
+        return max(1, int(base_size * self._scale_x))
+    
+    def size_y(self, base_size: int) -> int:
+        """Scale vertical dimension."""
+        return max(1, int(base_size * self._scale_y))
+    
+    def pad(self, base_pad: int) -> int:
+        """Scale padding."""
+        return max(1, int(base_pad * self._scale))
+    
+    def font(self, family: str = None, base_size: int = 14, weight: str = "normal") -> tuple:
+        """Get a scaled font tuple."""
+        fam = family or FONTS["family_en"]
+        return (fam, self.font_size(base_size), weight)
+    
+    def font_ar(self, base_size: int = 14, weight: str = "normal") -> tuple:
+        """Get a scaled Arabic font tuple."""
+        return (FONTS["family"], self.font_size(base_size), weight)
+    
+    def height_pct(self, pct: float) -> int:
+        """Get a height as percentage of window height."""
+        return max(1, int(self._h * pct))
+    
+    def width_pct(self, pct: float) -> int:
+        """Get a width as percentage of window width."""
+        return max(1, int(self._w * pct))
+
+
+# Global responsive manager instance
+responsive = ResponsiveManager()
+
+
 def configure_customtkinter():
     ctk.set_appearance_mode("light")
     ctk.set_default_color_theme("blue")
-    
-    import platform
-    if platform.system() == "Windows":
-        ctk.set_widget_scaling(1.2)
-        ctk.set_window_scaling(1.2)
+    # Removed fixed widget/window scaling - we handle scaling dynamically now
 
 
 def get_font(size: str = "md", weight: str = "normal") -> tuple:

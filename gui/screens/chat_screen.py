@@ -1,6 +1,7 @@
 """
 AI Robot Operating System - Chat Screen
 Chat interface for conversing with the AI chatbot.
+Fully responsive - text scales with window size.
 """
 
 import customtkinter as ctk
@@ -9,13 +10,13 @@ import threading
 import sys
 
 sys.path.append('../..')
-from gui.styles.theme import COLORS, FONTS, RADIUS
+from gui.styles.theme import COLORS, FONTS, RADIUS, responsive
 from core.arabic_utils import fix_arabic as _
 from modules.chatbot import chatbot, Message
 
 
 class ChatBubble(ctk.CTkFrame):
-    """Chat message bubble"""
+    """Chat message bubble - responsive"""
     
     def __init__(self, master, message: str, is_user: bool, timestamp: datetime = None, **kwargs):
         super().__init__(
@@ -28,32 +29,36 @@ class ChatBubble(ctk.CTkFrame):
         )
         
         self.is_user = is_user
+        r = responsive
+        
+        # Dynamic wraplength based on window width
+        wrap = max(200, int(r.w * 0.35))
         
         self.message_label = ctk.CTkLabel(
             self,
             text=_(message),
-            font=(FONTS["family"], FONTS["size_md"]),
+            font=r.font_ar(base_size=12),
             text_color=COLORS["text_white"] if is_user else COLORS["text_primary"],
             anchor="w",
             justify="left",
-            wraplength=500 # Increased for larger screens
+            wraplength=wrap
         )
-        self.message_label.pack(padx=20, pady=12, fill="both", expand=True)
+        self.message_label.pack(padx=r.pad(14), pady=r.pad(8), fill="both", expand=True)
         
         if timestamp:
             time_str = timestamp.strftime("%H:%M")
             self.time_label = ctk.CTkLabel(
                 self,
                 text=time_str,
-                font=(FONTS["family_en"], FONTS["size_xs"]),
+                font=r.font(base_size=8),
                 text_color=COLORS["text_muted"],
                 anchor="w"
             )
-            self.time_label.pack(padx=15, pady=(0, 5))
+            self.time_label.pack(padx=r.pad(10), pady=(0, r.pad(3)))
 
 
 class ChatScreen(ctk.CTkFrame):
-    """Chat Screen"""
+    """Chat Screen - Responsive"""
     
     def __init__(self, master, app_controller=None, **kwargs):
         super().__init__(
@@ -64,23 +69,47 @@ class ChatScreen(ctk.CTkFrame):
         
         self.app = app_controller
         self.is_waiting_response = False
+        self._last_w = 0
+        self._last_h = 0
         
         self._create_layout()
         self._show_greeting()
+        
+        self.bind("<Configure>", self._on_resize)
+    
+    def _on_resize(self, event=None):
+        w = self.winfo_width()
+        h = self.winfo_height()
+        if abs(w - self._last_w) < 30 and abs(h - self._last_h) < 30:
+            return
+        self._last_w = w
+        self._last_h = h
+        self._update_responsive()
+    
+    def _update_responsive(self):
+        r = responsive
+        self.title_label.configure(font=r.font(base_size=18, weight="bold"))
+        self.clear_btn.configure(font=r.font(base_size=10), height=r.size(28), width=r.size(100))
+        self.send_btn.configure(font=r.font_ar(base_size=16), width=r.size(50), height=r.size(38))
+        self.message_entry.configure(font=r.font(base_size=12), height=r.size(38))
+        self.med_btn.configure(font=r.font_ar(base_size=14), width=r.size(35), height=r.size(35))
     
     def _create_layout(self):
-        self.grid_columnconfigure(0, weight=1)
-        self.grid_rowconfigure(0, weight=0)
-        self.grid_rowconfigure(1, weight=1)
-        self.grid_rowconfigure(2, weight=0)
+        r = responsive
         
+        self.grid_columnconfigure(0, weight=1)
+        self.grid_rowconfigure(0, weight=0)  # Title ~6%
+        self.grid_rowconfigure(1, weight=1)  # Chat area ~82%
+        self.grid_rowconfigure(2, weight=0)  # Input ~12%
+        
+        # Title bar
         self.title_frame = ctk.CTkFrame(self, fg_color="transparent")
-        self.title_frame.grid(row=0, column=0, sticky="ew", padx=20, pady=(20, 10))
+        self.title_frame.grid(row=0, column=0, sticky="ew", padx=r.pad(15), pady=(r.pad(8), r.pad(4)))
         
         self.title_label = ctk.CTkLabel(
             self.title_frame,
             text="💬 AI Chat",
-            font=(FONTS["family_en"], FONTS["size_2xl"], "bold"),
+            font=r.font(base_size=18, weight="bold"),
             text_color=COLORS["text_primary"],
             anchor="w"
         )
@@ -89,93 +118,92 @@ class ChatScreen(ctk.CTkFrame):
         self.clear_btn = ctk.CTkButton(
             self.title_frame,
             text="🗑️ Clear Chat",
-            font=(FONTS["family_en"], FONTS["size_sm"]),
+            font=r.font(base_size=10),
             fg_color=COLORS["bg_tertiary"],
             hover_color=COLORS["danger"],
-            width=120,
-            height=30,
+            width=r.size(100),
+            height=r.size(28),
             command=self._clear_chat
         )
         self.clear_btn.pack(side="right")
         
         self._create_chat_area()
-        
         self._create_input_area()
     
     def _create_chat_area(self):
+        r = responsive
         self.chat_frame = ctk.CTkFrame(
             self,
             fg_color=COLORS["bg_card"],
             corner_radius=RADIUS["lg"]
         )
-        self.chat_frame.grid(row=1, column=0, sticky="nsew", padx=20, pady=10)
+        self.chat_frame.grid(row=1, column=0, sticky="nsew", padx=r.pad(15), pady=r.pad(4))
         
         self.messages_frame = ctk.CTkScrollableFrame(
             self.chat_frame,
-            fg_color="transparent"
+            fg_color="transparent",
+            scrollbar_button_color=COLORS["bg_tertiary"],
+            scrollbar_button_hover_color=COLORS["primary"]
         )
-        self.messages_frame.pack(fill="both", expand=True, padx=10, pady=10)
+        self.messages_frame.pack(fill="both", expand=True, padx=r.pad(6), pady=r.pad(6))
     
     def _create_input_area(self):
+        r = responsive
         self.input_frame = ctk.CTkFrame(
             self,
             fg_color=COLORS["bg_card"],
             corner_radius=RADIUS["lg"],
-            height=80
         )
-        self.input_frame.grid(row=2, column=0, sticky="ew", padx=20, pady=(0, 20))
-        self.input_frame.grid_propagate(False)
+        self.input_frame.grid(row=2, column=0, sticky="ew", padx=r.pad(15), pady=(0, r.pad(10)))
         
         self.input_container = ctk.CTkFrame(self.input_frame, fg_color="transparent")
-        self.input_container.pack(fill="both", expand=True, padx=15, pady=15)
+        self.input_container.pack(fill="both", expand=True, padx=r.pad(10), pady=r.pad(8))
         
         self.send_btn = ctk.CTkButton(
             self.input_container,
             text="📤",
-            font=(FONTS["family"], 20),
-            width=60,
-            height=45,
+            font=r.font_ar(base_size=16),
+            width=r.size(50),
+            height=r.size(38),
             fg_color=COLORS["primary"],
             hover_color=COLORS["primary_hover"],
             corner_radius=RADIUS["md"],
             command=self._send_message
         )
-        self.send_btn.pack(side="right", padx=(5, 0))
-        
-        self.message_entry = ctk.CTkEntry(
-            self.input_container,
-            placeholder_text="Type your message here...",
-            font=(FONTS["family_en"], FONTS["size_md"]),
-            fg_color=COLORS["bg_input"],
-            border_color=COLORS["border"],
-            height=45
-        )
-        self.message_entry.pack(side="left", fill="x", expand=True, padx=(0, 10))
-        self.message_entry.bind("<Return>", lambda e: self._send_message())
-        
-        self.quick_frame = ctk.CTkFrame(self.input_container, fg_color="transparent")
-        self.quick_frame.pack(side="right", fill="y", padx=(0, 5))
+        self.send_btn.pack(side="right", padx=(r.pad(4), 0))
         
         self.med_btn = ctk.CTkButton(
-            self.quick_frame,
+            self.input_container,
             text="💊",
-            font=(FONTS["family"], 18),
-            width=40,
-            height=40,
+            font=r.font_ar(base_size=14),
+            width=r.size(35),
+            height=r.size(35),
             fg_color=COLORS["bg_tertiary"],
             hover_color=COLORS["warning"],
             corner_radius=RADIUS["md"],
             command=self._request_medication_reminder
         )
-        self.med_btn.pack(side="left", padx=2)
+        self.med_btn.pack(side="right", padx=r.pad(2))
+        
+        self.message_entry = ctk.CTkEntry(
+            self.input_container,
+            placeholder_text="Type your message here...",
+            font=r.font(base_size=12),
+            fg_color=COLORS["bg_input"],
+            border_color=COLORS["border"],
+            height=r.size(38)
+        )
+        self.message_entry.pack(side="left", fill="x", expand=True, padx=(0, r.pad(6)))
+        self.message_entry.bind("<Return>", lambda e: self._send_message())
     
     def _show_greeting(self):
         greeting = chatbot.get_greeting()
         self._add_message(greeting, is_user=False)
     
     def _add_message(self, text: str, is_user: bool = True):
+        r = responsive
         container = ctk.CTkFrame(self.messages_frame, fg_color="transparent")
-        container.pack(fill="x", pady=5)
+        container.pack(fill="x", pady=r.pad(3))
         
         bubble = ChatBubble(
             container,
@@ -185,30 +213,31 @@ class ChatScreen(ctk.CTkFrame):
         )
         
         if is_user:
-            bubble.pack(anchor="e", padx=(50, 0))
+            bubble.pack(anchor="e", padx=(r.pad(40), 0))
         else:
-            bubble.pack(anchor="w", padx=(0, 50))
+            bubble.pack(anchor="w", padx=(0, r.pad(40)))
         
         self.messages_frame._parent_canvas.yview_moveto(1.0)
     
     def _add_typing_indicator(self):
+        r = responsive
         self.typing_container = ctk.CTkFrame(self.messages_frame, fg_color="transparent")
-        self.typing_container.pack(fill="x", pady=5)
+        self.typing_container.pack(fill="x", pady=r.pad(3))
         
         self.typing_bubble = ctk.CTkFrame(
             self.typing_container,
             fg_color=COLORS["bg_tertiary"],
             corner_radius=RADIUS["lg"]
         )
-        self.typing_bubble.pack(anchor="w", padx=(0, 50))
+        self.typing_bubble.pack(anchor="w", padx=(0, r.pad(40)))
         
         self.typing_label = ctk.CTkLabel(
             self.typing_bubble,
             text="🤖 Typing...",
-            font=(FONTS["family_en"], FONTS["size_md"]),
+            font=r.font(base_size=12),
             text_color=COLORS["text_muted"]
         )
-        self.typing_label.pack(padx=15, pady=10)
+        self.typing_label.pack(padx=r.pad(10), pady=r.pad(6))
     
     def _remove_typing_indicator(self):
         if hasattr(self, 'typing_container'):
