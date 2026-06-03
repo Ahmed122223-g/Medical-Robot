@@ -149,15 +149,45 @@ class VoiceAssistant:
             raise
     
     def _play_audio(self, filepath: str):
-        if not PYGAME_AVAILABLE: return
+        import platform
+        import subprocess
+        import os
+        system = platform.system()
+        
+        # On Linux (Raspberry Pi), native players avoid ALSA locking issues common with PyGame
+        if system == 'Linux':
+            try:
+                # Try ffplay (very reliable)
+                import shutil
+                if shutil.which("ffplay"):
+                    subprocess.run(["ffplay", "-nodisp", "-autoexit", "-loglevel", "quiet", filepath], check=True)
+                    return
+                # Try mpg123 as fallback for mp3
+                elif shutil.which("mpg123"):
+                    subprocess.run(["mpg123", "-q", filepath], check=True)
+                    return
+                # Try aplay for wav
+                elif filepath.endswith(".wav") and shutil.which("aplay"):
+                    subprocess.run(["aplay", "-q", filepath], check=True)
+                    return
+            except Exception as e:
+                print(f"[Audio] Linux player failed, falling back to pygame: {e}")
+
+        # Windows / Mac / Fallback
+        if not PYGAME_AVAILABLE: 
+            print("[Audio] Pygame not available for playback")
+            return
+            
         try:
             if not pygame.mixer.get_init():
                 pygame.mixer.init()
             pygame.mixer.music.load(filepath)
             pygame.mixer.music.play()
-            while pygame.mixer.music.get_busy(): time.sleep(0.1)
+            while pygame.mixer.music.get_busy(): 
+                time.sleep(0.1)
             pygame.mixer.music.unload()
-        except:
+        except Exception as e:
+            print(f"[Audio] Pygame playback error: {e}")
             try: pygame.mixer.music.unload()
             except: pass
     
