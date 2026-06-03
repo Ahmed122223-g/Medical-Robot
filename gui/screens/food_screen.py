@@ -31,6 +31,7 @@ class CameraCapture:
         self.rpi_running = False
         self.rpi_frame = None
         self.rpi_lock = threading.Lock()
+        self.rpi_errors = []
         
     def open(self):
         import platform
@@ -52,15 +53,27 @@ class CameraCapture:
                     
                 if shutil.which(cmd[0]):
                     import subprocess
-                    self.rpi_process = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.DEVNULL)
+                    self.rpi_errors = []
+                    self.rpi_process = subprocess.Popen(
+                        cmd, 
+                        stdout=subprocess.PIPE, 
+                        stderr=subprocess.PIPE
+                    )
                     self.rpi_running = True
                     threading.Thread(target=self._rpi_reader, daemon=True).start()
+                    threading.Thread(target=self._rpi_error_reader, daemon=True).start()
                     
                     import time
                     time.sleep(1.5)  # Wait for first frame
                     with self.rpi_lock:
                         if self.rpi_frame is not None:
                             return True
+                            
+                    # If it failed to capture any frame, print stderr
+                    if self.rpi_errors:
+                        print("❌ rpicam-vid/libcamera-vid process error log:")
+                        for err in self.rpi_errors:
+                            print(f"   [stderr] {err}")
             except Exception as e:
                 print("Failed to start rpicam-vid:", e)
                 
@@ -75,6 +88,18 @@ class CameraCapture:
         self.cap = cv2.VideoCapture(0)
         return self.cap.isOpened()
 
+    def _rpi_error_reader(self):
+        while self.rpi_running and self.rpi_process:
+            try:
+                line = self.rpi_process.stderr.readline()
+                if not line:
+                    break
+                decoded_line = line.decode('utf-8', errors='ignore').strip()
+                if decoded_line:
+                    self.rpi_errors.append(decoded_line)
+            except Exception:
+                break
+
     def _rpi_reader(self):
         bytes_data = b''
         while self.rpi_running and self.rpi_process:
@@ -84,10 +109,18 @@ class CameraCapture:
                     break
                 bytes_data += chunk
                 
-                a = bytes_data.find(b'\xff\xd8')
-                b = bytes_data.find(b'\xff\xd9')
-                
-                if a != -1 and b != -1:
+                while True:
+                    a = bytes_data.find(b'\xff\xd8')
+                    if a == -1:
+                        if len(bytes_data) > 1:
+                            bytes_data = bytes_data[-1:]
+                        break
+                        
+                    b = bytes_data.find(b'\xff\xd9', a)
+                    if b == -1:
+                        bytes_data = bytes_data[a:]
+                        break
+                        
                     jpg = bytes_data[a:b+2]
                     bytes_data = bytes_data[b+2:]
                     
