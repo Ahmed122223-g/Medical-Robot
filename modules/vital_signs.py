@@ -101,6 +101,11 @@ class VitalSignsMonitor:
             "blood_pressure": format_blood_pressure(vitals.systolic, vitals.diastolic),
             "heart_rate": format_heart_rate(vitals.heart_rate),
             "temperature": format_temperature(vitals.temperature),
+            "spo2": {
+                "value": f"{vitals.spo2:.1f}" if vitals.spo2 > 0 else "--",
+                "unit": "%",
+                "status": "Normal" if vitals.spo2 >= 95 else "Low" if vitals.spo2 > 0 else "Measuring..."
+            },
             "sugar": {"value": str(int(sugar_val)) if sugar_val > 0 else "--", "unit": "mg/dL", "status": sugar_status},
             "weight": {"value": str(self.manual_readings["weight"]) if self.manual_readings["weight"] > 0 else "--", "unit": "kg", "status": "Stable"},
             "timestamp": vitals.timestamp, "is_valid": vitals.is_valid

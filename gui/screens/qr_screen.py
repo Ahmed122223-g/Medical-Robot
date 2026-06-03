@@ -46,6 +46,8 @@ class QRCodeScreen(ctk.CTkFrame):
         self.hr_label.pack(pady=5)
         self.temp_label = ctk.CTkLabel(vf, text="Temperature: -- °C", font=(FONTS["family_en"], 14))
         self.temp_label.pack(pady=5)
+        self.spo2_label = ctk.CTkLabel(vf, text="Oxygen Saturation (SpO2): -- %", font=(FONTS["family_en"], 14))
+        self.spo2_label.pack(pady=5)
         ctk.CTkButton(vf, text="Refresh Readings", command=self.update_vitals_display, width=120).pack(pady=10)
         mf = ctk.CTkFrame(self.input_frame)
         mf.pack(fill="x", pady=20)
@@ -78,6 +80,7 @@ class QRCodeScreen(ctk.CTkFrame):
         self.bp_label.configure(text=f"Blood Pressure: {vitals.systolic}/{vitals.diastolic} mmHg")
         self.hr_label.configure(text=f"Heart Rate: {vitals.heart_rate} bpm")
         self.temp_label.configure(text=f"Temperature: {vitals.temperature} °C")
+        self.spo2_label.configure(text=f"Oxygen Saturation (SpO2): {vitals.spo2:.1f} %" if vitals.spo2 > 0 else "Oxygen Saturation (SpO2): -- %")
     
     def _start_vitals_polling(self):
         """Auto-refresh vitals every 1 second."""
@@ -106,7 +109,15 @@ class QRCodeScreen(ctk.CTkFrame):
         except ValueError:
             pass
         import base64, urllib.parse
-        raw_data = {"sys": systolic, "dia": diastolic, "w": weight, "s": sugar, "t": temp}
+        raw_data = {
+            "sys": systolic,
+            "dia": diastolic,
+            "hr": vitals.heart_rate,
+            "spo2": vitals.spo2,
+            "w": weight,
+            "s": sugar,
+            "t": temp
+        }
         json_str = json.dumps(raw_data)
         b64_encoded = base64.b64encode(json_str.encode('utf-8')).decode('utf-8')
         safe_param = urllib.parse.quote(b64_encoded)

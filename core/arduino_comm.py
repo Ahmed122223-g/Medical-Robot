@@ -26,6 +26,7 @@ class VitalSigns:
     diastolic: int = 0
     heart_rate: int = 0
     temperature: float = 0.0
+    spo2: float = 0.0
     timestamp: float = 0.0
     is_valid: bool = False   
 
@@ -100,30 +101,74 @@ class ArduinoComm:
             return False
     
     def update_vitals(self, data_line: str) -> bool:
-        """Update existing vitals from Arduino data line. Format: BP:120/80,HR:75,TEMP:36.5"""
+        """
+        Update existing vitals from Arduino data line.
+        Supports both comma-separated (Format A) and individual multi-line block values (Format B).
+        """
         try:
             updated = False
-            parts = data_line.strip().split(',')
+            data_line = data_line.strip()
+            if not data_line:
+                return False
+                
+            # If the Arduino indicates that the finger is not placed properly, reset vitals to 0
+            if "place finger" in data_line.lower():
+                with self._lock:
+                    self._current_vitals.systolic = 0
+                    self._current_vitals.diastolic = 0
+                    self._current_vitals.heart_rate = 0
+                    self._current_vitals.temperature = 0.0
+                    self._current_vitals.spo2 = 0.0
+                    self._current_vitals.is_valid = False
+                    self._current_vitals.timestamp = time.time()
+                return True
+
+            # Split by comma if it's the old Format A, otherwise treat as single line
+            parts = data_line.split(',') if ',' in data_line else [data_line]
             
             with self._lock:
                 self._current_vitals.timestamp = time.time()
                 for part in parts:
                     part = part.strip()
-                    if part.startswith('BP:'):
-                        bp_values = part[3:].split('/')
-                        if len(bp_values) == 2:
-                            self._current_vitals.systolic = int(bp_values[0])
-                            self._current_vitals.diastolic = int(bp_values[1])
-                            updated = True
-                    elif part.startswith('HR:'):
-                        self._current_vitals.heart_rate = int(part[3:])
+                    if not part:
+                        continue
+                    
+                    # 1. Heart Rate (e.g., "Heart Rate: 51.6 bpm" or "HR:75")
+                    if "heart rate" in part.lower() or part.startswith("HR:"):
+                        val_str = part.split(":")[1].lower().replace("bpm", "").strip()
+                        self._current_vitals.heart_rate = int(float(val_str))
+                        self._current_vitals.is_valid = True
                         updated = True
-                    elif part.startswith('TEMP:'):
-                        self._current_vitals.temperature = float(part[5:])
+                        
+                    # 2. Oxygen Saturation (e.g., "Oxygen Saturation (SpO2): 90.0 %")
+                    elif "spo2" in part.lower() or "oxygen" in part.lower():
+                        if ":" in part:
+                            val_str = part.split(":")[1].replace("%", "").strip()
+                        else:
+                            val_str = part.replace("%", "").strip()
+                        self._current_vitals.spo2 = float(val_str)
+                        self._current_vitals.is_valid = True
+                        updated = True
+                        
+                    # 3. Blood Pressure (e.g., "Estimated BP: 108 / 71" or "BP:120/80")
+                    elif "bp:" in part.lower() or "blood pressure" in part.lower():
+                        val_str = part.split(":")[1].strip()
+                        bp_values = val_str.split('/')
+                        if len(bp_values) == 2:
+                            self._current_vitals.systolic = int(float(bp_values[0].strip()))
+                            self._current_vitals.diastolic = int(float(bp_values[1].strip()))
+                            self._current_vitals.is_valid = True
+                            updated = True
+                            
+                    # 4. Temperature (e.g., "Body Temp: 34.3 C" or "TEMP:36.5")
+                    elif "temp:" in part.lower() or "temperature" in part.lower() or "body temp" in part.lower():
+                        val_str = part.split(":")[1].lower().replace("c", "").strip()
+                        self._current_vitals.temperature = float(val_str)
+                        self._current_vitals.is_valid = True
                         updated = True
             
             return updated
-        except (ValueError, IndexError):
+        except (ValueError, IndexError, KeyError):
             return False
     
     def _reading_loop(self):
@@ -187,10 +232,37 @@ class ArduinoComm:
     
     def test(self):
         """Test connection and data parsing"""
-        test_data = "BP:130/85,HR:78,TEMP:36.8"
-        if self.update_vitals(test_data):
-            return True
-        return False
+        # Test old format (Format A)
+        assert self.update_vitals("BP:130/85,HR:78,TEMP:36.8")
+        assert self._current_vitals.systolic == 130
+        assert self._current_vitals.diastolic == 85
+        assert self._current_vitals.heart_rate == 78
+        assert self._current_vitals.temperature == 36.8
+        
+        # Test new multi-line formats (Format B)
+        assert self.update_vitals("Heart Rate: 51.6 bpm")
+        assert self._current_vitals.heart_rate == 51
+        
+        assert self.update_vitals("Oxygen Saturation (SpO2): 92.5 %")
+        assert self._current_vitals.spo2 == 92.5
+        
+        assert self.update_vitals("Estimated BP: 109 / 72")
+        assert self._current_vitals.systolic == 109
+        assert self._current_vitals.diastolic == 72
+        
+        assert self.update_vitals("Body Temp: 34.5 C")
+        assert self._current_vitals.temperature == 34.5
+        
+        # Test place finger properly message
+        assert self.update_vitals("Place finger properly...")
+        assert self._current_vitals.heart_rate == 0
+        assert self._current_vitals.spo2 == 0.0
+        assert self._current_vitals.systolic == 0
+        assert self._current_vitals.temperature == 0.0
+        assert not self._current_vitals.is_valid
+        
+        print("All tests passed successfully!")
+        return True
 
 
 arduino = ArduinoComm()
