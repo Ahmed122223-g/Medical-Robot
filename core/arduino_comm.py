@@ -22,12 +22,12 @@ from config import config
 @dataclass
 class VitalSigns:
     """Vital signs data structure"""
-    systolic: int = 120
-    diastolic: int = 80
-    heart_rate: int = 75
-    temperature: float = 36.5
+    systolic: int = 0
+    diastolic: int = 0
+    heart_rate: int = 0
+    temperature: float = 0.0
     timestamp: float = 0.0
-    is_valid: bool = True
+    is_valid: bool = False   
 
 
 class ArduinoComm:
@@ -132,8 +132,6 @@ class ArduinoComm:
                                 with self._lock:
                                     self._current_vitals = vitals
                                 self._notify_callbacks(vitals)
-                else:
-                    self._simulate_vitals()
                 
                 time.sleep(0.1)  
             except Exception:
