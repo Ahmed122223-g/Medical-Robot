@@ -189,25 +189,30 @@ class MainWindow(ctk.CTk):
         """Unified click handler: show keyboard on input tap, hide on outside tap."""
         try:
             clicked = event.widget
+            print(f"[KEYBOARD_DEBUG] Clicked widget: {clicked} (type: {type(clicked)})")
             
             # If clicked inside the keyboard itself, do nothing (let keyboard handle it)
             if self.keyboard and self._is_child_of(clicked, self.keyboard):
+                print("[KEYBOARD_DEBUG] Clicked inside keyboard itself, ignoring.")
                 return
             
             # Check if clicked on an input field
             input_widget = self._find_input_widget(clicked)
+            print(f"[KEYBOARD_DEBUG] Found input widget: {input_widget}")
             
             if input_widget:
                 # Clicked on input field -> show keyboard after a short delay
                 # The delay ensures the click is fully processed first
                 if self.keyboard:
+                    print(f"[KEYBOARD_DEBUG] Showing keyboard for: {input_widget}")
                     self.after(150, lambda w=input_widget: self.keyboard.show(w))
             else:
                 # Clicked outside input field and keyboard -> hide keyboard
                 if self.keyboard and self.keyboard.is_visible:
+                    print("[KEYBOARD_DEBUG] Clicked outside input and keyboard is visible, hiding.")
                     self.keyboard.hide()
-        except:
-            pass
+        except Exception as e:
+            print(f"[KEYBOARD_DEBUG] Error in click handler: {e}")
     
     def _is_child_of(self, widget, parent):
         """Check if widget is a child of parent."""
