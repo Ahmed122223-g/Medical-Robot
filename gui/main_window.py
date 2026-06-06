@@ -158,63 +158,54 @@ class MainWindow(ctk.CTk):
         # Create the embedded keyboard (hidden initially)
         self.keyboard = VirtualKeyboard(self.right_frame)
         
-        # Bind focus events for keyboard show/hide
-        self.bind_all("<FocusIn>", self._handle_widget_focus)
-        self.bind_all("<Button-1>", self._handle_global_click)
+        # Single unified click handler for keyboard show/hide
+        self.bind_all("<Button-1>", self._handle_click_for_keyboard)
         
-    def _handle_widget_focus(self, event):
-        """Show keyboard when an input field gets focus."""
+    def _find_input_widget(self, widget):
+        """Check if widget or its parent is a CTkEntry/CTkTextbox. Returns the CTk widget or None."""
+        import tkinter as tk
+        
+        # Direct check
+        if isinstance(widget, (ctk.CTkEntry, ctk.CTkTextbox)):
+            return widget
+        
+        # Check if it's an internal tk widget of a CTk input
+        if isinstance(widget, (tk.Entry, tk.Text)):
+            if hasattr(widget, 'master') and isinstance(widget.master, (ctk.CTkEntry, ctk.CTkTextbox)):
+                return widget.master
+        
+        # Walk up parents (for other internal widgets)
+        parent = widget
+        for _ in range(5):
+            parent = parent.master if hasattr(parent, 'master') else None
+            if parent is None:
+                break
+            if isinstance(parent, (ctk.CTkEntry, ctk.CTkTextbox)):
+                return parent
+        
+        return None
+    
+    def _handle_click_for_keyboard(self, event):
+        """Unified click handler: show keyboard on input tap, hide on outside tap."""
         try:
-            import tkinter as tk
-            widget = event.widget
-            ctk_widget = widget
-            
-            # CustomTkinter uses standard tk widgets internally for input
-            if isinstance(widget, (tk.Entry, tk.Text)):
-                if hasattr(widget, 'master') and isinstance(widget.master, (ctk.CTkEntry, ctk.CTkTextbox)):
-                    ctk_widget = widget.master
-                    
-            if isinstance(ctk_widget, (ctk.CTkEntry, ctk.CTkTextbox)):
-                if self.keyboard:
-                    self.keyboard.show(ctk_widget)
-        except Exception as e:
-            print(f"Keyboard focus error: {e}")
-
-    def _handle_global_click(self, event):
-        """Hide keyboard when clicking outside input fields and keyboard."""
-        try:
-            import tkinter as tk
-            if not self.keyboard or not self.keyboard.is_visible:
-                return
-            
-            # Don't hide if keyboard was just shown (race condition with FocusIn)
-            import time
-            if hasattr(self.keyboard, '_show_time') and (time.time() - self.keyboard._show_time) < 0.4:
-                return
-            
             clicked = event.widget
             
-            # Check if click is inside keyboard
-            if self._is_child_of(clicked, self.keyboard):
+            # If clicked inside the keyboard itself, do nothing (let keyboard handle it)
+            if self.keyboard and self._is_child_of(clicked, self.keyboard):
                 return
             
-            # Check if the clicked widget is an input field (CTk or internal tk)
-            if isinstance(clicked, (ctk.CTkEntry, ctk.CTkTextbox)):
-                return
-            if isinstance(clicked, (tk.Entry, tk.Text)):
-                return
+            # Check if clicked on an input field
+            input_widget = self._find_input_widget(clicked)
             
-            # Check if parent is an entry (CTkEntry internal widgets)
-            parent = clicked
-            for _ in range(5):
-                parent = parent.master if hasattr(parent, 'master') else None
-                if parent is None:
-                    break
-                if isinstance(parent, (ctk.CTkEntry, ctk.CTkTextbox)):
-                    return
-                if parent == self.keyboard:
-                    return
-            self.keyboard.hide()
+            if input_widget:
+                # Clicked on input field -> show keyboard after a short delay
+                # The delay ensures the click is fully processed first
+                if self.keyboard:
+                    self.after(150, lambda w=input_widget: self.keyboard.show(w))
+            else:
+                # Clicked outside input field and keyboard -> hide keyboard
+                if self.keyboard and self.keyboard.is_visible:
+                    self.keyboard.hide()
         except:
             pass
     
