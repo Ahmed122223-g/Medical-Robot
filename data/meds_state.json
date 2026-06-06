@@ -30,8 +30,8 @@
             "calculation_sugar": null
         },
         "Aspirin Protect 100mg": {
-            "taken_today": false,
-            "last_taken": null,
+            "taken_today": true,
+            "last_taken": "2026-06-06T14:06:02.996574",
             "is_active": true,
             "calculated_dose": null,
             "calculation_sugar": null

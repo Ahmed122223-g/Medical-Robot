@@ -223,19 +223,18 @@ class VirtualKeyboard(ctk.CTkFrame):
     
     def show(self, target_widget):
         """Show keyboard for a specific input widget."""
-        import time
         self.target = target_widget
         self._visible = True
-        self._show_time = time.time()
-        # Use grid for better alignment with the parent frame's layout
-        self.grid(row=1, column=0, sticky="ew")
+        # Use tkinter's native place (bypass CTkFrame override that blocks height)
+        import tkinter as tk
+        tk.Frame.place(self, relx=0, rely=1.0, anchor="sw", relwidth=1.0, height=250)
         self.lift()
     
     def hide(self):
         """Hide the keyboard."""
         if self._visible:
             self._visible = False
-            self.grid_forget()
+            self.place_forget()
             self.target = None
     
     @property
