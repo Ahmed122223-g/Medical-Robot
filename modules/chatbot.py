@@ -64,29 +64,67 @@ class Chatbot:
             pass
     
     def _get_system_prompt(self) -> str:
-        conditions_str = "، ".join(self.patient_info.conditions)
+        conditions_str = ", ".join(self.patient_info.conditions)
         medications_str = "\n".join([f"• {med}" for med in self.patient_info.medications])
         return f"""
-أنت مساعد طبي ذكي باسم "الدكتورة مريم"، تتحدث بلغة بيضاء راقية (مزيج بين الفصحى المبسطة والعامية المهذبة).
-اسم المريض للحالة الحالية هو {self.patient_info.name} وعمره {self.patient_info.age} عاماً.
+You are an intelligent medical assistant named "Dr. Maryam", speaking in a professional, polite, and helpful manner.
+The patient's name is {self.patient_info.name} and they are {self.patient_info.age} years old.
 
-الحالات الصحية للمريض: {conditions_str}
+Patient's health conditions: {conditions_str}
 
-الأدوية الحالية للمريض:
+Patient's current medications:
 {medications_str}
 
-أسلوبك في الكلام:
-1. تحدث بأسلوب شبه رسمي (Semi-Formal)، محترم، وودود في نفس الوقت.
-2. كن دقيقاً جداً وأجب على أسئلة المريض الطبية أو العامة بتفاصيل وافية وشرح مبسط علمي وواضح.
-3. أظهر تعاطفاً مع المريض ولكن بمهنية طبية عالية وموثوقة.
-4. استخدم عبارات مثل "بالطبع"، "يسعدني توضيح ذلك"، "شفاك الله وعافاك".
-5. احتفظ بردودك منظمة، مع إعطاء معلومات قيمة ودقيقة ومفصلة.
-6. إذا سأل المريض عن الأدوية أو الجرعات، اشرح له التفاصيل بطريقة احترافية ومطمئنة.
+Style instructions:
+1. Speak in a polite, respectful, and friendly tone.
+2. Be highly accurate and answer patient questions with detailed, simple, clear scientific explanations.
+3. Show empathy while maintaining professional standards.
+4. Keep your responses organized with lists or bullet points if needed.
+5. Provide valuable, detailed, and accurate health information.
+6. CRITICAL: You MUST write your response entirely in English. Do NOT output any Arabic text.
 """
     
+    def translate_to_english(self, text: str) -> str:
+        """Translate Arabic text to English using Groq."""
+        if not self.client:
+            return text
+        try:
+            response = self.client.chat.completions.create(
+                model=self.model_name,
+                messages=[
+                    {"role": "system", "content": "Translate the following Arabic text to English. Output only the English translation. Do not write explanations or anything else."},
+                    {"role": "user", "content": text}
+                ],
+                max_tokens=250,
+                temperature=0.1
+            )
+            res = response.choices[0].message.content.strip().strip('"').strip()
+            return res
+        except Exception:
+            return text
+
+    def translate_to_arabic(self, text: str) -> str:
+        """Translate English response to Egyptian Arabic for speech."""
+        if not self.client:
+            return text
+        try:
+            response = self.client.chat.completions.create(
+                model=self.model_name,
+                messages=[
+                    {"role": "system", "content": "Translate the following English medical explanation to natural spoken Egyptian Arabic (friendly/warm tone). Output only the Arabic translation. Do not write English explanations or anything else."},
+                    {"role": "user", "content": text}
+                ],
+                max_tokens=400,
+                temperature=0.3
+            )
+            res = response.choices[0].message.content.strip().strip('"').strip()
+            return res
+        except Exception:
+            return text
+
     def send_message(self, user_message: str) -> str:
         if not self.client:
-            return "عذراً، الشات بوت غير متاح حالياً. يرجى المحاولة لاحقاً."
+            return "Sorry, the chatbot is currently unavailable. Please try again later."
         with self._lock:
             try:
                 self.history.append(Message(content=user_message, is_user=True))
@@ -100,28 +138,28 @@ class Chatbot:
             except Exception as e:
                 error_msg = str(e)
                 if "429" in error_msg or "rate" in error_msg.lower():
-                    return "⚠️ عذراً، يرجى الانتظار قليلاً ثم المحاولة مرة أخرى."
-                return "عذراً، حدث خطأ في الاتصال. يرجى المحاولة مرة أخرى."
+                    return "⚠️ Sorry, please wait a moment and try again."
+                return "Sorry, a connection error occurred. Please try again."
     
     def send_message_async(self, user_message: str, callback):
         threading.Thread(target=lambda: callback(self.send_message(user_message)), daemon=True).start()
     
     def get_greeting(self) -> str:
         hour = datetime.now().hour
-        if 5 <= hour < 12: time_greeting = "صباح الخير"
-        elif 12 <= hour < 17: time_greeting = "مساء الخير"
-        else: time_greeting = "مساء الخير"
+        if 5 <= hour < 12: time_greeting = "Good morning"
+        elif 12 <= hour < 17: time_greeting = "Good afternoon"
+        else: time_greeting = "Good evening"
         return f"""
 {time_greeting}! 👋
 
-أنا مساعدك الطبي الذكي. كيف يمكنني مساعدتك اليوم؟
+I am your intelligent medical assistant. How can I help you today?
 
-يمكنني:
-• 💊 تذكيرك بمواعيد الأدوية
-• 🥗 تقديم نصائح غذائية
-• 💬 الإجابة على استفساراتك الصحية
+I can:
+• 💊 Remind you of medication times
+• 🥗 Provide nutritional advice
+• 💬 Answer your health inquiries
 
-ما الذي تريد أن نتحدث عنه؟
+What would you like to talk about?
 """
     
     def get_history(self) -> list[Message]: return self.history.copy()
@@ -137,17 +175,17 @@ class Chatbot:
     
     def get_medication_reminder(self) -> str:
         hour = datetime.now().hour
-        reminder_parts = ["💊 تذكير بالأدوية:\n"]
-        if 6 <= hour < 10: reminder_parts.append("• Concor 5mg - قرص واحد الآن (صباحاً)")
-        if 12 <= hour < 15: reminder_parts.append("• Aspirin Protect 100mg - قرص واحد بعد الغداء")
+        reminder_parts = ["💊 Medication Reminder:\n"]
+        if 6 <= hour < 10: reminder_parts.append("• Concor 5mg - one tablet now (morning)")
+        if 12 <= hour < 15: reminder_parts.append("• Aspirin Protect 100mg - one tablet after lunch")
         if 18 <= hour < 21:
-            reminder_parts.append("• Zestril 10mg - قرص واحد الآن (مساءً)")
-            reminder_parts.append("• Glucophage XR 1000mg - قرص واحد بعد العشاء")
+            reminder_parts.append("• Zestril 10mg - one tablet now (evening)")
+            reminder_parts.append("• Glucophage XR 1000mg - one tablet after dinner")
         if 21 <= hour or hour < 1:
-            reminder_parts.append("• Ator 20mg - قرص واحد قبل النوم")
-            reminder_parts.append("• Lantus SoloStar - 20 وحدة قبل النوم")
+            reminder_parts.append("• Ator 20mg - one tablet before bedtime")
+            reminder_parts.append("• Lantus SoloStar - 20 units before bedtime")
         if len(reminder_parts) == 1:
-            return "✅ لا توجد أدوية مستحقة في هذا الوقت. استمر في الالتزام بمواعيد أدويتك!"
+            return "✅ No medications are due at this time. Keep up the good work with your schedule!"
         return "\n".join(reminder_parts)
     
     def test(self):

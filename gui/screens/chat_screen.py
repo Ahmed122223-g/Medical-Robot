@@ -254,16 +254,18 @@ class ChatScreen(ctk.CTkFrame):
             return
         
         self.message_entry.delete(0, 'end')
-        
-        self._add_message(message, is_user=True)
-        
+        self.send_btn.configure(state="disabled")
         self._add_typing_indicator()
         self.is_waiting_response = True
         
-        self.send_btn.configure(state="disabled")
-        
         def get_response():
-            response = chatbot.send_message(message)
+            has_arabic = any('\u0600' <= char <= '\u06FF' for char in message)
+            english_message = chatbot.translate_to_english(message) if has_arabic else message
+            
+            # Display user message in English
+            self.after(0, lambda: self._add_message(english_message, is_user=True))
+            
+            response = chatbot.send_message(english_message)
             self.after(0, lambda: self._handle_response(response))
         
         threading.Thread(target=get_response, daemon=True).start()
@@ -274,10 +276,25 @@ class ChatScreen(ctk.CTkFrame):
         self.send_btn.configure(state="normal")
         
         self._add_message(response, is_user=False)
+        
+        # Translate response to Arabic and speak it
+        def speak_async():
+            arabic_response = chatbot.translate_to_arabic(response)
+            from modules.voice_assistant import voice_assistant
+            voice_assistant.speak(arabic_response, wait=False)
+            
+        threading.Thread(target=speak_async, daemon=True).start()
     
     def _request_medication_reminder(self):
         reminder = chatbot.get_medication_reminder()
         self._add_message(reminder, is_user=False)
+        
+        def speak_async():
+            arabic_reminder = chatbot.translate_to_arabic(reminder)
+            from modules.voice_assistant import voice_assistant
+            voice_assistant.speak(arabic_reminder, wait=False)
+            
+        threading.Thread(target=speak_async, daemon=True).start()
     
     def _clear_chat(self):
         for widget in self.messages_frame.winfo_children():
@@ -301,21 +318,27 @@ class ChatScreen(ctk.CTkFrame):
         if not text or not text.strip():
             return
         
+        # Translate Arabic voice input to English text
+        def process_async():
+            has_arabic = any('\u0600' <= char <= '\u06FF' for char in text)
+            english_text = chatbot.translate_to_english(text) if has_arabic else text
+            self.after(0, lambda: self._update_entry_and_send(english_text, auto_send, speak_response))
+            
+        threading.Thread(target=process_async, daemon=True).start()
+
+    def _update_entry_and_send(self, english_text: str, auto_send: bool, speak_response: bool):
         self.message_entry.delete(0, 'end')
-        self.message_entry.insert(0, text)
+        self.message_entry.insert(0, english_text)
         self.message_entry.update()
         
-        if not auto_send:
-            return
-        
-        self.after(300, lambda: self._send_voice_message(text, speak_response))
+        if auto_send:
+            self.after(300, lambda: self._send_voice_message(english_text, speak_response))
     
     def _send_voice_message(self, text: str, speak_response: bool = True):
         if self.is_waiting_response:
             return
         
         self.message_entry.delete(0, 'end')
-        
         self._add_message(text, is_user=True)
         
         self._add_typing_indicator()
@@ -336,8 +359,8 @@ class ChatScreen(ctk.CTkFrame):
         self._add_message(response, is_user=False)
         
         if speak_response:
-            try:
+            def speak_async():
+                arabic_response = chatbot.translate_to_arabic(response)
                 from modules.voice_assistant import voice_assistant
-                voice_assistant.speak(response, wait=False)
-            except Exception:
-                pass
+                voice_assistant.speak(arabic_response, wait=False)
+            threading.Thread(target=speak_async, daemon=True).start()

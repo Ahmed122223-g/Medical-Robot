@@ -528,6 +528,7 @@ class FoodScreen(ctk.CTkFrame):
     def _speak_results(self, result: FoodAnalysisResult):
         try:
             from modules.voice_assistant import voice_assistant
+            from modules.chatbot import chatbot
             
             speech_parts = []
             
@@ -588,8 +589,13 @@ class FoodScreen(ctk.CTkFrame):
                 else:
                     speech_parts.append("It is recommended to consume it in moderation")
             
-            full_speech = ". ".join(speech_parts)
-            voice_assistant.speak(full_speech, wait=False)
+            full_speech_en = ". ".join(speech_parts)
+            
+            def translate_and_speak():
+                arabic_speech = chatbot.translate_to_arabic(full_speech_en)
+                voice_assistant.speak(arabic_speech, wait=False)
+                
+            threading.Thread(target=translate_and_speak, daemon=True).start()
             
         except Exception:
             pass
