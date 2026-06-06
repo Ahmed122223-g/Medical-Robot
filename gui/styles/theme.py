@@ -156,12 +156,12 @@ class ResponsiveManager:
         return self._scale_y
     
     def font_size(self, base_size: int) -> int:
-        """Scale a font size proportionally. Minimum 16 for readability."""
-        return max(16, int(base_size * self._scale * 1.5))
+        """Scale a font size proportionally."""
+        return max(12, int(base_size * self._scale))
     
     def size(self, base_size: int) -> int:
         """Scale a pixel dimension proportionally."""
-        return max(2, int(base_size * self._scale * 1.2))
+        return max(1, int(base_size * self._scale))
     
     def size_x(self, base_size: int) -> int:
         """Scale horizontal dimension."""
@@ -200,7 +200,18 @@ responsive = ResponsiveManager()
 def configure_customtkinter():
     ctk.set_appearance_mode("light")
     ctk.set_default_color_theme("blue")
-    # Removed fixed widget/window scaling - we handle scaling dynamically now
+    
+    import platform
+    is_rpi = platform.system() == 'Linux' and ('arm' in platform.machine() or 'aarch' in platform.machine())
+    
+    if is_rpi:
+        # Huge boost for small Raspberry Pi touchscreens
+        ctk.set_widget_scaling(1.8)
+        ctk.set_window_scaling(1.8)
+    else:
+        # Slight boost for desktop
+        ctk.set_widget_scaling(1.2)
+        ctk.set_window_scaling(1.2)
 
 
 def get_font(size: str = "md", weight: str = "normal") -> tuple:
