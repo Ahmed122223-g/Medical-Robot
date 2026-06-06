@@ -165,12 +165,20 @@ class MainWindow(ctk.CTk):
     def _handle_widget_focus(self, event):
         """Show keyboard when an input field gets focus."""
         try:
+            import tkinter as tk
             widget = event.widget
-            if isinstance(widget, (ctk.CTkEntry, ctk.CTkTextbox)):
-                if self.keyboard and not (self.keyboard.is_visible and self.keyboard.target == widget):
-                    self.keyboard.show(widget)
-        except:
-            pass
+            ctk_widget = widget
+            
+            # CustomTkinter uses standard tk widgets internally for input
+            if isinstance(widget, (tk.Entry, tk.Text)):
+                if hasattr(widget, 'master') and isinstance(widget.master, (ctk.CTkEntry, ctk.CTkTextbox)):
+                    ctk_widget = widget.master
+                    
+            if isinstance(ctk_widget, (ctk.CTkEntry, ctk.CTkTextbox)):
+                if self.keyboard and not (self.keyboard.is_visible and self.keyboard.target == ctk_widget):
+                    self.keyboard.show(ctk_widget)
+        except Exception as e:
+            print(f"Keyboard focus error: {e}")
 
     def _handle_global_click(self, event):
         """Hide keyboard when clicking outside input fields and keyboard."""
