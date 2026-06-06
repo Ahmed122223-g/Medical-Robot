@@ -140,8 +140,8 @@ class ResponsiveManager:
         is_rpi = platform.system() == 'Linux' and ('arm' in platform.machine() or 'aarch' in platform.machine())
         
         if is_rpi:
-            # Force a much larger minimum scale for small Raspberry Pi touchscreens
-            self._scale = max(1.6, raw_scale)
+            # Raspberry pi small screen scale
+            self._scale = max(1.0, min(raw_scale, 1.3))
         else:
             # Normal scale on Desktop, constrained so it doesn't get ridiculously huge or tiny
             self._scale = max(0.9, min(raw_scale, 1.4))

@@ -106,7 +106,7 @@ class FoodAnalyzer:
                 print(f"[FoodAnalyzer] Cloudflare returned success=false")
                 return None
             response_text = result_json["result"]["response"]
-            print(f"[FoodAnalyzer] Cloudflare response: {response_text[:200]}...")
+            print(f"[FoodAnalyzer] Cloudflare FULL response:\n{response_text}")
             return self._parse_response(response_text)
         except Exception as e:
             print(f"[FoodAnalyzer] Cloudflare error: {e}")
@@ -338,6 +338,10 @@ class FoodAnalyzer:
         if result.food_name and not result.food_name_ar:
             result.food_name_ar = result.food_name
         
+        # Debug: print all parsed values
+        print(f"[FoodAnalyzer] PARSED -> Name: {result.food_name!r}, Desc: {result.description[:50] if result.description else ''!r}")
+        print(f"[FoodAnalyzer] PARSED -> Cal: {result.nutrition.calories}, Carb: {result.nutrition.carbohydrates}, Sugar: {result.nutrition.sugar}, Fat: {result.nutrition.fat}, Protein: {result.nutrition.protein}, Sodium: {result.nutrition.sodium}")
+        
         return result
     
     def analyze_image(self, image_path: str) -> FoodAnalysisResult:
@@ -362,7 +366,7 @@ class FoodAnalyzer:
                     
                     if response and response.text:
                         print(f"[FoodAnalyzer] Gemini response received ({len(response.text)} chars)")
-                        print(f"[FoodAnalyzer] Response preview: {response.text[:300]}...")
+                        print(f"[FoodAnalyzer] Gemini FULL response:\n{response.text}")
                         result = self._parse_response(response.text)
                         
                         # Validate - if food name is empty or "unknown", retry with simpler prompt
