@@ -487,30 +487,22 @@ class FoodScreen(ctk.CTkFrame):
         name_frame = ctk.CTkFrame(self.results_scroll, fg_color=COLORS["bg_secondary"], corner_radius=RADIUS["md"])
         name_frame.pack(fill="x", pady=r.pad(3))
         
-        food_label = f"🍽️ {result.food_name_ar}" if not food_number else f"🍽️ [{food_number}] {result.food_name_ar}"
+        display_name = result.food_name or result.food_name_ar or "Unknown Food"
+        food_label = f"🍽️ {display_name}" if not food_number else f"🍽️ [{food_number}] {display_name}"
         ctk.CTkLabel(
             name_frame,
-            text=_(food_label),
-            font=r.font_ar(base_size=15, weight="bold"),
+            text=food_label,
+            font=r.font(base_size=15, weight="bold"),
             text_color=COLORS["text_primary"],
             anchor="w"
         ).pack(anchor="w", padx=r.pad(10), pady=r.pad(6))
-        
-        if result.food_name:
-            ctk.CTkLabel(
-                name_frame,
-                text=f"({result.food_name})",
-                font=r.font(base_size=9),
-                text_color=COLORS["text_muted"],
-                anchor="w"
-            ).pack(anchor="w", padx=r.pad(10), pady=(0, r.pad(6)))
         
         if result.description:
             wrap = max(200, int(self.winfo_width() * 0.35))
             ctk.CTkLabel(
                 self.results_scroll,
-                text=_(result.description),
-                font=r.font_ar(base_size=10),
+                text=result.description,
+                font=r.font(base_size=10),
                 text_color=COLORS["text_secondary"],
                 anchor="w",
                 wraplength=wrap
@@ -526,8 +518,8 @@ class FoodScreen(ctk.CTkFrame):
             wrap = max(200, int(self.winfo_width() * 0.35))
             ctk.CTkLabel(
                 rec_frame,
-                text=_(f"💡 {result.overall_recommendation}"),
-                font=r.font_ar(base_size=10),
+                text=f"💡 {result.overall_recommendation}",
+                font=r.font(base_size=10),
                 text_color="#ffffff",
                 anchor="w",
                 wraplength=wrap
@@ -546,45 +538,45 @@ class FoodScreen(ctk.CTkFrame):
             if len(all_foods) > 1:
                 food_names = []
                 for f in all_foods:
-                    name = f.food_name_ar or f.food_name or ""
+                    name = f.food_name or f.food_name_ar or ""
                     if name:
                         food_names.append(name)
                 if food_names:
-                    speech_parts.append(f"وجدت {len(food_names)} أطعمة في الصورة: {' و '.join(food_names)}")
+                    speech_parts.append(f"I found {len(food_names)} food items in the image: {', '.join(food_names)}")
             else:
-                food_name = result.food_name_ar or result.food_name or "طعام"
-                speech_parts.append(f"هذا الطعام هو {food_name}")
+                food_name = result.food_name or result.food_name_ar or "food"
+                speech_parts.append(f"This food is {food_name}")
             
             warnings = []
             
             if not result.diabetes_suitability.is_suitable or result.diabetes_suitability.risk_level == "high":
                 sugar_warning = ""
                 if result.nutrition.sugar > 15:
-                    sugar_warning = f"نسبة السكريات مرتفعة وتبلغ {result.nutrition.sugar} جرام"
+                    sugar_warning = f"sugar content is high at {result.nutrition.sugar} grams"
                 elif result.nutrition.carbohydrates > 50:
-                    sugar_warning = f"نسبة الكربوهيدرات مرتفعة وتبلغ {result.nutrition.carbohydrates} جرام"
+                    sugar_warning = f"carbohydrate content is high at {result.nutrition.carbohydrates} grams"
                 else:
-                    sugar_warning = "نسبة السكريات مرتفعة"
-                warnings.append(f"{sugar_warning}، وهذا خطر على مرضى السكري")
+                    sugar_warning = "sugar content is high"
+                warnings.append(f"{sugar_warning}, which is risky for diabetes patients")
             
             if not result.hypertension_suitability.is_suitable or result.hypertension_suitability.risk_level == "high":
                 if result.nutrition.sodium > 500:
-                    warnings.append(f"نسبة الصوديوم مرتفعة وتبلغ {result.nutrition.sodium} ملليجرام، وهذا خطر على مرضى الضغط")
+                    warnings.append(f"sodium content is high at {result.nutrition.sodium} milligrams, which is risky for hypertension patients")
                 else:
-                    warnings.append("نسبة الصوديوم مرتفعة، وهذا خطر على مرضى الضغط")
+                    warnings.append("sodium content is high, which is risky for hypertension patients")
             
             if not result.heart_suitability.is_suitable or result.heart_suitability.risk_level == "high":
                 if result.nutrition.fat > 20:
-                    warnings.append(f"نسبة الدهون مرتفعة وتبلغ {result.nutrition.fat} جرام، وهذا خطر على مرضى القلب")
+                    warnings.append(f"fat content is high at {result.nutrition.fat} grams, which is risky for heart patients")
                 elif result.nutrition.cholesterol > 100:
-                    warnings.append(f"نسبة الكوليسترول مرتفعة، وهذا خطر على مرضى القلب")
+                    warnings.append(f"cholesterol is high, which is risky for heart patients")
                 else:
-                    warnings.append("نسبة الدهون مرتفعة، وهذا خطر على مرضى القلب")
+                    warnings.append("fat content is high, which is risky for heart patients")
             
             if warnings:
-                speech_parts.append("تحذير")
+                speech_parts.append("Warning")
                 speech_parts.extend(warnings)
-                speech_parts.append("هذا الطعام غير مناسب لحالتك الصحية")
+                speech_parts.append("This food is not suitable for your health condition")
             else:
                 all_suitable = (
                     result.diabetes_suitability.is_suitable and 
@@ -592,9 +584,9 @@ class FoodScreen(ctk.CTkFrame):
                     result.heart_suitability.is_suitable
                 )
                 if all_suitable:
-                    speech_parts.append("هذا الطعام مناسب لحالتك الصحية")
+                    speech_parts.append("This food is suitable for your health condition")
                 else:
-                    speech_parts.append("ينصح بتناوله بكميات معتدلة")
+                    speech_parts.append("It is recommended to consume it in moderation")
             
             full_speech = ". ".join(speech_parts)
             voice_assistant.speak(full_speech, wait=False)

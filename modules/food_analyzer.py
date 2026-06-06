@@ -428,26 +428,29 @@ class FoodAnalyzer:
 YOUR JOB: Identify what food items are visible and provide nutritional analysis.
 
 RULES:
-- If you CANNOT identify any food in the image, or if there is no food, you MUST reply with "اسم الطعام: غير معروف" and do not guess randomly.
+- If you CANNOT identify any food in the image, or if there is no food, you MUST reply with "Food Name: Unknown" and do not guess randomly.
 - If image is blurry, try your best based on color, shape, plate, context, but do not guess if unsure.
 - If you see a person holding food, identify ONLY the food.
 - If there are multiple food items, identify each one separately.
+- CRITICAL: Respond strictly in English. All text, descriptions, ingredients, and assessments MUST be in English. Do NOT output any Arabic words.
 
 For EACH food item found, provide this info:
-اسم الطعام: [name in Arabic]
 Food Name: [name in English]
-الوصف: [short description]
-المكونات: [main ingredients]
-السعرات الحرارية: [number]
-الكربوهيدرات: [number]g
-السكريات: [number]g
-الدهون: [number]g
-البروتين: [number]g
-الصوديوم: [number]mg
-تقييم لمرضى السكري: [مناسب / بحذر / غير مناسب]
-تقييم لمرضى الضغط: [مناسب / بحذر / غير مناسب]
-تقييم لمرضى القلب: [مناسب / بحذر / غير مناسب]
-التوصية العامة: [recommendation]
+Description: [short description in English]
+Ingredients: [main ingredients in English]
+Calories: [number]
+Carbohydrates: [number]g
+Sugar: [number]g
+Fat: [number]g
+Protein: [number]g
+Sodium: [number]mg
+Diabetes Assessment: [Suitable / Caution / Not Suitable]
+- [reason in English]
+Hypertension Assessment: [Suitable / Caution / Not Suitable]
+- [reason in English]
+Heart Assessment: [Suitable / Caution / Not Suitable]
+- [reason in English]
+Overall Recommendation: [recommendation in English]
 
 If there are multiple foods, separate each food's analysis with a line of ---"""
 
@@ -476,51 +479,54 @@ If there are multiple foods, separate each food's analysis with a line of ---"""
 
 CRITICAL RULES:
 1. Try your best to identify the food. Use visual clues: color, shape, size, texture, context.
-2. CRITICAL: If you are unsure, or if there is NO food in the image, you MUST output "اسم الطعام: غير معروف" and DO NOT guess randomly.
+2. CRITICAL: If you are unsure, or if there is NO food in the image, you MUST output "Food Name: Unknown" and DO NOT guess randomly.
 3. If the image shows a person holding food or eating, IGNORE the person and focus ONLY on the food.
 4. If you see multiple food items, analyze EACH food item separately, and separate them with ---
 5. Common foods to look for: bread, rice, eggs, meat, chicken, fish, salad, fruit, vegetables, soup, pasta, cheese, milk, juice, cake, chocolate, chips, sandwiches, falafel, hummus, beans, lentils.
+6. CRITICAL: All fields, descriptions, assessments, and recommendations MUST be written in English. Do NOT output any Arabic words.
 
 For EACH food item, respond in this EXACT format:
-اسم الطعام: [اسم الطعام بالعربية]
 Food Name: [English name]  
-الوصف: [وصف قصير]
-المكونات: [المكونات مفصولة بفواصل]
-السعرات الحرارية: [رقم] سعرة
-الكربوهيدرات: [رقم] جرام
-السكريات: [رقم] جرام
-الدهون: [رقم] جرام
-البروتين: [رقم] جرام
-الصوديوم: [رقم] مجم
-تقييم لمرضى السكري: [مناسب / بحذر / غير مناسب]
-- [سبب]
-تقييم لمرضى الضغط: [مناسب / بحذر / غير مناسب]
-- [سبب]
-تقييم لمرضى القلب: [مناسب / بحذر / غير مناسب]
-- [سبب]
-التوصية العامة: [توصية مختصرة]
+Description: [short description in English]
+Ingredients: [main ingredients separated by commas in English]
+Calories: [number]
+Carbohydrates: [number]g
+Sugar: [number]g
+Fat: [number]g
+Protein: [number]g
+Sodium: [number]mg
+Diabetes Assessment: [Suitable / Caution / Not Suitable]
+- [brief reason in English]
+Hypertension Assessment: [Suitable / Caution / Not Suitable]
+- [brief reason in English]
+Heart Assessment: [Suitable / Caution / Not Suitable]
+- [brief reason in English]
+Overall Recommendation: [short recommendation in English]
 
 If multiple foods, separate with:
 ---"""
     
     def _get_cloudflare_prompt(self):
-        return """Analyze this food image. IMPORTANT: If there is no food or you are unsure, output "اسم الطعام: غير معروف" and do not guess. If multiple foods visible, analyze each.
+        return """Analyze this food image. IMPORTANT: If there is no food or you are unsure, output "Food Name: Unknown" and do not guess. If multiple foods visible, analyze each.
+CRITICAL: All fields, names, descriptions, and assessments MUST be in English. Do NOT output any Arabic words.
 
 For each food:
-اسم الطعام: [Arabic Name]
 Food Name: [English Name]
-الوصف: [Description]
-المكونات: [Ingredients]
-السعرات الحرارية: [Number]
-الكربوهيدرات: [Number]g
-السكريات: [Number]g
-الدهون: [Number]g
-البروتين: [Number]g
-الصوديوم: [Number]mg
-تقييم لمرضى السكري: [مناسب / بحذر / غير مناسب]
-تقييم لمرضى الضغط: [مناسب / بحذر / غير مناسب]
-تقييم لمرضى القلب: [مناسب / بحذر / غير مناسب]
-التوصية العامة: [Recommendation]
+Description: [Description in English]
+Ingredients: [Ingredients in English]
+Calories: [Number]
+Carbohydrates: [Number]g
+Sugar: [Number]g
+Fat: [Number]g
+Protein: [Number]g
+Sodium: [Number]mg
+Diabetes Assessment: [Suitable / Caution / Not Suitable]
+- [reason in English]
+Hypertension Assessment: [Suitable / Caution / Not Suitable]
+- [reason in English]
+Heart Assessment: [Suitable / Caution / Not Suitable]
+- [reason in English]
+Overall Recommendation: [Recommendation in English]
 
 Separate multiple foods with ---"""
 

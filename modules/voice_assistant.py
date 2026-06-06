@@ -118,7 +118,9 @@ class VoiceAssistant:
     def _speak_edge_tts(self, text: str):
         async def _generate_speech():
             temp_file = os.path.join(tempfile.gettempdir(), f"edge_tts_{int(time.time()*1000)}.mp3")
-            communicate = edge_tts.Communicate(text, "ar-EG-SalmaNeural")
+            has_arabic = any('\u0600' <= char <= '\u06FF' for char in text)
+            voice = "ar-EG-SalmaNeural" if has_arabic else "en-US-AriaNeural"
+            communicate = edge_tts.Communicate(text, voice)
             await communicate.save(temp_file)
             return temp_file
         try:
@@ -135,15 +137,17 @@ class VoiceAssistant:
     def _speak_offline(self, text: str):
         import subprocess, platform
         system = platform.system()
+        has_arabic = any('\u0600' <= char <= '\u06FF' for char in text)
         try:
             if system == 'Windows':
-                translated_text = translate(text)
+                translated_text = translate(text) if has_arabic else text
                 safe_text = translated_text.replace('"', '`"').replace("'", "`'").replace('\n', ' ')
                 ps_command = f'Add-Type -AssemblyName System.Speech; $synth = New-Object System.Speech.Synthesis.SpeechSynthesizer; $synth.Rate = 0; $synth.Speak("{safe_text}")'
                 subprocess.run(["powershell", "-Command", ps_command], capture_output=True, text=True, timeout=60)
             elif system == 'Linux':
-                result = subprocess.run(["espeak", "-v", "ar", text], capture_output=True, text=True, timeout=30)
-                if result.returncode != 0:
+                voice_lang = "ar" if has_arabic else "en"
+                result = subprocess.run(["espeak", "-v", voice_lang, text], capture_output=True, text=True, timeout=30)
+                if result.returncode != 0 and has_arabic:
                     subprocess.run(["espeak", translate(text)], capture_output=True, text=True, timeout=30)
         except:
             raise
