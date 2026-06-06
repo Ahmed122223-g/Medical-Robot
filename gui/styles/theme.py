@@ -114,9 +114,9 @@ class ResponsiveManager:
     Reference resolution: 1200x800 (design baseline).
     """
     
-    # Design baseline (Optimized for Raspberry Pi)
-    BASE_W = 800
-    BASE_H = 480
+    # Design baseline
+    BASE_W = 1200
+    BASE_H = 800
     
     def __init__(self):
         self._w = self.BASE_W
@@ -133,7 +133,18 @@ class ResponsiveManager:
         self._h = height
         self._scale_x = width / self.BASE_W
         self._scale_y = height / self.BASE_H
-        self._scale = min(self._scale_x, self._scale_y)
+        
+        raw_scale = min(self._scale_x, self._scale_y)
+        
+        import platform
+        is_rpi = platform.system() == 'Linux' and ('arm' in platform.machine() or 'aarch' in platform.machine())
+        
+        if is_rpi:
+            # Force a much larger minimum scale for small Raspberry Pi touchscreens
+            self._scale = max(1.6, raw_scale)
+        else:
+            # Normal scale on Desktop, constrained so it doesn't get ridiculously huge or tiny
+            self._scale = max(0.9, min(raw_scale, 1.4))
     
     @property
     def w(self) -> int:
@@ -156,11 +167,11 @@ class ResponsiveManager:
         return self._scale_y
     
     def font_size(self, base_size: int) -> int:
-        """Scale a font size proportionally."""
-        return max(12, int(base_size * self._scale))
+        """Scale a font size proportionally. Minimum 8."""
+        return max(8, int(base_size * self._scale))
     
     def size(self, base_size: int) -> int:
-        """Scale a pixel dimension proportionally."""
+        """Scale a pixel dimension proportionally. Minimum 1."""
         return max(1, int(base_size * self._scale))
     
     def size_x(self, base_size: int) -> int:
@@ -200,18 +211,7 @@ responsive = ResponsiveManager()
 def configure_customtkinter():
     ctk.set_appearance_mode("light")
     ctk.set_default_color_theme("blue")
-    
-    import platform
-    is_rpi = platform.system() == 'Linux' and ('arm' in platform.machine() or 'aarch' in platform.machine())
-    
-    if is_rpi:
-        # Huge boost for small Raspberry Pi touchscreens
-        ctk.set_widget_scaling(1.8)
-        ctk.set_window_scaling(1.8)
-    else:
-        # Slight boost for desktop
-        ctk.set_widget_scaling(1.2)
-        ctk.set_window_scaling(1.2)
+    # Removed fixed widget/window scaling - we handle scaling dynamically now
 
 
 def get_font(size: str = "md", weight: str = "normal") -> tuple:

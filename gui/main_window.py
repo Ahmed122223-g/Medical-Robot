@@ -65,22 +65,37 @@ class MainWindow(ctk.CTk):
         self.screens = {}
         self.current_screen = None
         self.voice_permission_granted = config.VOICE_ENABLED
-        self.keyboard = None
+        # Bind resize to update responsive manager
+        self.bind("<Configure>", self._on_window_resize)
+        self.minsize(800, 480)
+        
+        # Determine actual window size for scaling
+        current_w = config.SCREEN_WIDTH
+        current_h = config.SCREEN_HEIGHT
+        if config.APP_FULLSCREEN:
+            try:
+                current_w = self.winfo_screenwidth()
+                current_h = self.winfo_screenheight()
+            except:
+                pass
+                
+        # Initialize responsive manager BEFORE creating layout!
+        responsive.update(current_w, current_h)
+        
+        self.screens = {}
+        self.current_screen: Optional[str] = None
+        self._resize_timer = None
         
         self._create_layout()
         
-        # Bind resize to update responsive manager
-        self.bind("<Configure>", self._on_window_resize)
-        self._resize_timer = None
+        self.voice_permission_granted = config.VOICE_ENABLED
+        self.keyboard = None
         
         self.after(100, self._start_services_async)
         
         self.show_screen("home")
         
         self.after(1000, self._play_welcome)
-        
-        # Initialize responsive manager with initial size
-        self.after(200, self._init_responsive)
         
         self.protocol("WM_DELETE_WINDOW", self._on_close)
         
