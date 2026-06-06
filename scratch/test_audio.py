@@ -30,7 +30,18 @@ def run_test():
         
     # 2. Test Microphone
     print("\n[2/2] Testing MICROPHONE...")
-    print("Please say something clearly into the microphone now (you have 5 seconds)...")
+    
+    # Print available microphones
+    try:
+        import speech_recognition as sr
+        print("Available Microphones detected by Python:")
+        mic_list = sr.Microphone.list_microphone_names()
+        for idx, name in enumerate(mic_list):
+            print(f"  Index {idx}: {name}")
+    except Exception as e:
+        print(f"Could not list microphones: {e}")
+        
+    print("\nPlease say something clearly into the microphone now (you have 5 seconds)...")
     try:
         # Enable listening for the assistant
         voice_assistant.listening_enabled = True
