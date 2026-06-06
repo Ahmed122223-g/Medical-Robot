@@ -223,84 +223,108 @@ class FoodAnalyzer:
         return [text]
     
     def _parse_single_food(self, text: str) -> FoodAnalysisResult:
-        """Parse a single food section from AI response."""
+        """Parse a single food section from AI response.
+        Supports both Arabic and English labels, with or without markdown bold."""
         result = FoodAnalysisResult(analysis_successful=True)
         lines = text.strip().split('\n')
         current_section = ""
+        
+        import re
         
         for line in lines:
             line = line.strip()
             if not line:
                 continue
             
+            # Strip markdown bold markers (**text** -> text)
+            line = line.replace('**', '')
+            
             # Remove leading numbers like "1." "2." etc.
-            import re
             line = re.sub(r'^\d+[\.\)]\s*', '', line)
             
+            # Normalize the line for matching (lowercase for English)
+            line_lower = line.lower()
+            
+            # --- Food Name ---
             if "اسم الطعام" in line and ":" in line:
                 result.food_name_ar = line.split(":", 1)[1].strip()
-            elif line.startswith("Food Name") and ":" in line:
+            elif "food name" in line_lower and ":" in line:
                 result.food_name = line.split(":", 1)[1].strip()
+            # --- Description ---
             elif "الوصف" in line and ":" in line:
                 result.description = line.split(":", 1)[1].strip()
+            elif "description" in line_lower and ":" in line:
+                result.description = line.split(":", 1)[1].strip()
+            # --- Ingredients ---
             elif "المكونات" in line and ":" in line:
                 ingredients_text = line.split(":", 1)[1].strip()
-                # Split by Arabic comma, English comma, or dash
                 for sep in ['،', ',']:
                     if sep in ingredients_text:
                         result.ingredients = [i.strip() for i in ingredients_text.split(sep)]
                         break
                 else:
                     result.ingredients = [ingredients_text]
-            elif "السعرات الحرارية" in line and ":" in line:
+            elif "ingredients" in line_lower and ":" in line:
+                ingredients_text = line.split(":", 1)[1].strip()
+                result.ingredients = [i.strip() for i in ingredients_text.split(',')]
+            # --- Calories ---
+            elif ("السعرات الحرارية" in line or "calories" in line_lower) and ":" in line:
                 try:
                     result.nutrition.calories = int(''.join(filter(str.isdigit, line.split(":", 1)[1].strip())) or 0)
                 except: pass
-            elif "الكربوهيدرات" in line and ":" in line:
+            # --- Carbohydrates ---
+            elif ("الكربوهيدرات" in line or "carbohydrates" in line_lower or "carbs" in line_lower) and ":" in line:
                 try:
                     result.nutrition.carbohydrates = float(''.join(filter(lambda c: c.isdigit() or c == '.', line.split(":", 1)[1].strip())) or 0)
                 except: pass
-            elif "السكريات" in line and ":" in line:
+            # --- Sugar ---
+            elif ("السكريات" in line or "sugar" in line_lower) and ":" in line:
                 try:
                     result.nutrition.sugar = float(''.join(filter(lambda c: c.isdigit() or c == '.', line.split(":", 1)[1].strip())) or 0)
                 except: pass
-            elif "الدهون" in line and ":" in line:
+            # --- Fat ---
+            elif ("الدهون" in line or "fat" in line_lower) and ":" in line:
                 try:
                     result.nutrition.fat = float(''.join(filter(lambda c: c.isdigit() or c == '.', line.split(":", 1)[1].strip())) or 0)
                 except: pass
-            elif "البروتين" in line and ":" in line:
+            # --- Protein ---
+            elif ("البروتين" in line or "protein" in line_lower) and ":" in line:
                 try:
                     result.nutrition.protein = float(''.join(filter(lambda c: c.isdigit() or c == '.', line.split(":", 1)[1].strip())) or 0)
                 except: pass
-            elif "الصوديوم" in line and ":" in line:
+            # --- Sodium ---
+            elif ("الصوديوم" in line or "sodium" in line_lower) and ":" in line:
                 try:
                     result.nutrition.sodium = float(''.join(filter(lambda c: c.isdigit() or c == '.', line.split(":", 1)[1].strip())) or 0)
                 except: pass
-            elif "السكري" in line or "diabetes" in line.lower():
+            # --- Diabetes ---
+            elif "السكري" in line or "diabetes" in line_lower:
                 current_section = "diabetes"
-                if "غير مناسب" in line:
+                if "غير مناسب" in line or "not suitable" in line_lower or "unsuitable" in line_lower:
                     result.diabetes_suitability.is_suitable = False
                     result.diabetes_suitability.risk_level = "high"
-                elif "بحذر" in line:
+                elif "بحذر" in line or "caution" in line_lower or "moderate" in line_lower:
                     result.diabetes_suitability.risk_level = "medium"
-            elif "الضغط" in line or "hypertension" in line.lower():
+            # --- Hypertension ---
+            elif "الضغط" in line or "hypertension" in line_lower or "blood pressure" in line_lower:
                 current_section = "hypertension"
-                if "غير مناسب" in line:
+                if "غير مناسب" in line or "not suitable" in line_lower or "unsuitable" in line_lower:
                     result.hypertension_suitability.is_suitable = False
                     result.hypertension_suitability.risk_level = "high"
-                elif "بحذر" in line:
+                elif "بحذر" in line or "caution" in line_lower or "moderate" in line_lower:
                     result.hypertension_suitability.risk_level = "medium"
-            elif "القلب" in line or "heart" in line.lower():
+            # --- Heart ---
+            elif "القلب" in line or "heart" in line_lower:
                 current_section = "heart"
-                if "غير مناسب" in line:
+                if "غير مناسب" in line or "not suitable" in line_lower or "unsuitable" in line_lower:
                     result.heart_suitability.is_suitable = False
                     result.heart_suitability.risk_level = "high"
-                elif "بحذر" in line:
+                elif "بحذر" in line or "caution" in line_lower or "moderate" in line_lower:
                     result.heart_suitability.risk_level = "medium"
-            elif "التوصية العامة" in line and ":" in line:
+            # --- Overall Recommendation ---
+            elif ("التوصية العامة" in line or "overall" in line_lower or "recommendation" in line_lower) and ":" in line:
                 result.overall_recommendation = line.split(":", 1)[1].strip()
-            elif "Overall" in line and ":" in line:
-                result.overall_recommendation = line.split(":", 1)[1].strip()
+            # --- Warnings (bullet points) ---
             elif line.startswith("- ") or line.startswith("• "):
                 warning = line[2:].strip()
                 if current_section == "diabetes":
@@ -309,6 +333,10 @@ class FoodAnalyzer:
                     result.hypertension_suitability.warnings.append(warning)
                 elif current_section == "heart":
                     result.heart_suitability.warnings.append(warning)
+        
+        # If we got English name but no Arabic name, use English as fallback
+        if result.food_name and not result.food_name_ar:
+            result.food_name_ar = result.food_name
         
         return result
     
