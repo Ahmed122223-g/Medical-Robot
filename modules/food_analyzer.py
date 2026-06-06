@@ -400,8 +400,8 @@ class FoodAnalyzer:
 YOUR JOB: Identify what food items are visible and provide nutritional analysis.
 
 RULES:
-- You MUST identify at least one food item. Never say "unknown" or "I cannot identify".
-- If image is blurry, guess based on color, shape, plate, context.
+- If you CANNOT identify any food in the image, or if there is no food, you MUST reply with "اسم الطعام: غير معروف" and do not guess randomly.
+- If image is blurry, try your best based on color, shape, plate, context, but do not guess if unsure.
 - If you see a person holding food, identify ONLY the food.
 - If there are multiple food items, identify each one separately.
 
@@ -447,13 +447,11 @@ If there are multiple foods, separate each food's analysis with a line of ---"""
         return """You are a medical nutrition expert specialized in food identification from images.
 
 CRITICAL RULES:
-1. You MUST ALWAYS identify the food in the image, even if the image is blurry, dark, out of focus, or partially visible.
-2. NEVER say "طعام غير معروف" (unknown food) or "لا أستطيع التعرف" (cannot identify).
-3. Use ANY visual clues: color, shape, size, texture, plate, bowl, packaging, hands, context.
-4. Even if you're only 20% sure, make your best guess and provide full analysis.
-5. If the image shows a person holding food or eating, IGNORE the person and focus ONLY on the food.
-6. If you see multiple food items, analyze EACH food item separately, and separate them with ---
-7. Common foods to look for: bread, rice, eggs, meat, chicken, fish, salad, fruit, vegetables, soup, pasta, cheese, milk, juice, cake, chocolate, chips, sandwiches, falafel, hummus, beans, lentils.
+1. Try your best to identify the food. Use visual clues: color, shape, size, texture, context.
+2. CRITICAL: If you are unsure, or if there is NO food in the image, you MUST output "اسم الطعام: غير معروف" and DO NOT guess randomly.
+3. If the image shows a person holding food or eating, IGNORE the person and focus ONLY on the food.
+4. If you see multiple food items, analyze EACH food item separately, and separate them with ---
+5. Common foods to look for: bread, rice, eggs, meat, chicken, fish, salad, fruit, vegetables, soup, pasta, cheese, milk, juice, cake, chocolate, chips, sandwiches, falafel, hummus, beans, lentils.
 
 For EACH food item, respond in this EXACT format:
 اسم الطعام: [اسم الطعام بالعربية]
@@ -478,7 +476,7 @@ If multiple foods, separate with:
 ---"""
     
     def _get_cloudflare_prompt(self):
-        return """Analyze this food image. IMPORTANT: Always identify the food even if blurry. NEVER say unknown. If multiple foods visible, analyze each.
+        return """Analyze this food image. IMPORTANT: If there is no food or you are unsure, output "اسم الطعام: غير معروف" and do not guess. If multiple foods visible, analyze each.
 
 For each food:
 اسم الطعام: [Arabic Name]

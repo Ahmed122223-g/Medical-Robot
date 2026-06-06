@@ -53,7 +53,7 @@ After=multi-user.target
 
 [Service]
 Type=simple
-User=pi
+User=robot
 WorkingDirectory=$(pwd)
 ExecStart=$(pwd)/venv/bin/python main.py
 Restart=always

@@ -490,7 +490,7 @@ class FoodScreen(ctk.CTkFrame):
         food_label = f"🍽️ {result.food_name_ar}" if not food_number else f"🍽️ [{food_number}] {result.food_name_ar}"
         ctk.CTkLabel(
             name_frame,
-            text=food_label,
+            text=_(food_label),
             font=r.font_ar(base_size=15, weight="bold"),
             text_color=COLORS["text_primary"],
             anchor="w"
@@ -509,7 +509,7 @@ class FoodScreen(ctk.CTkFrame):
             wrap = max(200, int(self.winfo_width() * 0.35))
             ctk.CTkLabel(
                 self.results_scroll,
-                text=result.description,
+                text=_(result.description),
                 font=r.font_ar(base_size=10),
                 text_color=COLORS["text_secondary"],
                 anchor="w",
@@ -526,7 +526,7 @@ class FoodScreen(ctk.CTkFrame):
             wrap = max(200, int(self.winfo_width() * 0.35))
             ctk.CTkLabel(
                 rec_frame,
-                text=f"💡 {result.overall_recommendation}",
+                text=_(f"💡 {result.overall_recommendation}"),
                 font=r.font_ar(base_size=10),
                 text_color="#ffffff",
                 anchor="w",

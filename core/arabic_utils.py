@@ -22,9 +22,16 @@ def fix_arabic(text: str) -> str:
         return text
     
     try:
-        reshaped_text = arabic_reshaper.reshape(text)
-        bidi_text = get_display(reshaped_text)
-        return bidi_text
+        lines = str(text).split('\n')
+        fixed_lines = []
+        for line in lines:
+            if not line.strip():
+                fixed_lines.append(line)
+                continue
+            reshaped_text = arabic_reshaper.reshape(line)
+            bidi_text = get_display(reshaped_text)
+            fixed_lines.append(bidi_text)
+        return '\n'.join(fixed_lines)
     except Exception:
         return text
 
