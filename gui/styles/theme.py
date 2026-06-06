@@ -156,12 +156,12 @@ class ResponsiveManager:
         return self._scale_y
     
     def font_size(self, base_size: int) -> int:
-        """Scale a font size proportionally. Minimum 12 for readability."""
-        return max(12, int(base_size * self._scale))
+        """Scale a font size proportionally. Minimum 16 for readability."""
+        return max(16, int(base_size * self._scale * 1.5))
     
     def size(self, base_size: int) -> int:
-        """Scale a pixel dimension proportionally. Minimum 1."""
-        return max(1, int(base_size * self._scale))
+        """Scale a pixel dimension proportionally."""
+        return max(2, int(base_size * self._scale * 1.2))
     
     def size_x(self, base_size: int) -> int:
         """Scale horizontal dimension."""

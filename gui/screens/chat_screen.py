@@ -32,16 +32,18 @@ class ChatBubble(ctk.CTkFrame):
         r = responsive
         
         # Dynamic wraplength based on window width
-        wrap = max(200, int(r.w * 0.35))
+        wrap_pixels = max(200, int(r.w * 0.35))
+        # Estimate characters that fit in the wrap_pixels (assuming ~8px per char)
+        char_wrap = max(30, int(wrap_pixels / 8))
         
         self.message_label = ctk.CTkLabel(
             self,
-            text=_(message),
+            text=_(message, wrap_length=char_wrap),
             font=r.font_ar(base_size=12),
             text_color=COLORS["text_white"] if is_user else COLORS["text_primary"],
-            anchor="w",
-            justify="left",
-            wraplength=wrap
+            anchor="e",
+            justify="right"
+            # Do NOT use native wraplength as it breaks BiDi text lines
         )
         self.message_label.pack(padx=r.pad(14), pady=r.pad(8), fill="both", expand=True)
         
