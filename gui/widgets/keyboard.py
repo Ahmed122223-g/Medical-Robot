@@ -223,8 +223,10 @@ class VirtualKeyboard(ctk.CTkFrame):
     
     def show(self, target_widget):
         """Show keyboard for a specific input widget."""
+        import time
         self.target = target_widget
         self._visible = True
+        self._show_time = time.time()
         # Use grid for better alignment with the parent frame's layout
         self.grid(row=1, column=0, sticky="ew")
         self.lift()

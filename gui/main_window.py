@@ -175,7 +175,6 @@ class MainWindow(ctk.CTk):
                     ctk_widget = widget.master
                     
             if isinstance(ctk_widget, (ctk.CTkEntry, ctk.CTkTextbox)):
-                print(f"[DEBUG] Focus in CTkEntry/CTkTextbox. Current target: {getattr(self.keyboard, 'target', None)}, New target: {ctk_widget}")
                 if self.keyboard:
                     self.keyboard.show(ctk_widget)
         except Exception as e:
@@ -184,14 +183,27 @@ class MainWindow(ctk.CTk):
     def _handle_global_click(self, event):
         """Hide keyboard when clicking outside input fields and keyboard."""
         try:
+            import tkinter as tk
             if not self.keyboard or not self.keyboard.is_visible:
                 return
+            
+            # Don't hide if keyboard was just shown (race condition with FocusIn)
+            import time
+            if hasattr(self.keyboard, '_show_time') and (time.time() - self.keyboard._show_time) < 0.4:
+                return
+            
             clicked = event.widget
-            # Check if click is inside keyboard or an input field
+            
+            # Check if click is inside keyboard
             if self._is_child_of(clicked, self.keyboard):
                 return
+            
+            # Check if the clicked widget is an input field (CTk or internal tk)
             if isinstance(clicked, (ctk.CTkEntry, ctk.CTkTextbox)):
                 return
+            if isinstance(clicked, (tk.Entry, tk.Text)):
+                return
+            
             # Check if parent is an entry (CTkEntry internal widgets)
             parent = clicked
             for _ in range(5):
