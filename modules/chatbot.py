@@ -81,46 +81,16 @@ Style instructions:
 3. Maintain professional standards and professional empathy.
 4. Keep your responses organized with lists or bullet points if needed.
 5. Provide valuable, detailed, and accurate health information.
-6. CRITICAL: You MUST write your response entirely in English. Do NOT output any Arabic text.
+6. CRITICAL: You MUST write your response entirely in Arabic (Standard Formal Arabic / Fusha). Do NOT output any English text unless absolutely necessary for medical terms.
 """
     
     def translate_to_english(self, text: str) -> str:
-        """Translate Arabic text to English using Groq."""
-        if not self.client:
-            return text
-        try:
-            response = self.client.chat.completions.create(
-                model=self.model_name,
-                messages=[
-                    {"role": "system", "content": "Translate the following Arabic text to English. Output only the English translation. Do not write explanations or anything else."},
-                    {"role": "user", "content": text}
-                ],
-                max_tokens=250,
-                temperature=0.1
-            )
-            res = response.choices[0].message.content.strip().strip('"').strip()
-            return res
-        except Exception:
-            return text
+        """Deprecated: Translation is no longer needed since the model speaks Arabic natively."""
+        return text
 
     def translate_to_arabic(self, text: str) -> str:
-        """Translate English response to formal Arabic for speech."""
-        if not self.client:
-            return text
-        try:
-            response = self.client.chat.completions.create(
-                model=self.model_name,
-                messages=[
-                    {"role": "system", "content": "Translate the following English medical explanation to highly formal, professional Arabic (Standard Arabic / Fusha) suitable for a professional academic presentation. Avoid any colloquial phrases, personal names, or calling the assistant a doctor. Output only the Arabic translation. Do not write English explanations or anything else."},
-                    {"role": "user", "content": text}
-                ],
-                max_tokens=400,
-                temperature=0.3
-            )
-            res = response.choices[0].message.content.strip().strip('"').strip()
-            return res
-        except Exception:
-            return text
+        """Deprecated: Translation is no longer needed since the model speaks Arabic natively."""
+        return text
 
     def send_message(self, user_message: str) -> str:
         if not self.client:

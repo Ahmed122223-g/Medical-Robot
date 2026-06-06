@@ -259,13 +259,10 @@ class ChatScreen(ctk.CTkFrame):
         self.is_waiting_response = True
         
         def get_response():
-            has_arabic = any('\u0600' <= char <= '\u06FF' for char in message)
-            english_message = chatbot.translate_to_english(message) if has_arabic else message
+            # Display user message in Arabic directly
+            self.after(0, lambda: self._add_message(message, is_user=True))
             
-            # Display user message in English
-            self.after(0, lambda: self._add_message(english_message, is_user=True))
-            
-            response = chatbot.send_message(english_message)
+            response = chatbot.send_message(message)
             self.after(0, lambda: self._handle_response(response))
         
         threading.Thread(target=get_response, daemon=True).start()
