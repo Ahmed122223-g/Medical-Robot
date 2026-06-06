@@ -242,20 +242,20 @@ class VoiceAssistant:
     def set_current_screen(self, screen): self.current_screen = screen
     
     def welcome_message(self):
-        self.speak("مرحباً بك! أنا مريم، الروبوت الطبي الذكي. أنا هنا لمساعدتك ورعايتك.")
+        self.speak("مرحباً بكم. أنا المساعد الطبي الذكي، مصمم لتقديم خدمات الرعاية والمتابعة الصحية.")
     
     def ask_permission(self, callback=None):
-        self.speak("هل تسمح لي بالاستماع إليك والتحدث معك؟")
+        self.speak("هل تأذن لي بتفعيل المساعد الصوتي للتفاعل معكم؟")
         response = self.listen_once()
         if response:
-            if any(word in response.lower() for word in ["نعم", "اوك", "موافق", "تمام", "ايوه", "اه"]):
+            if any(word in response.lower() for word in ["نعم", "اوك", "موافق", "تمام", "ايوه", "اه", "تفضل", "مقبول"]):
                 self.set_voice_permission(True)
-                self.speak("شكراً لك! أنا مستعد لمساعدتك.")
+                self.speak("شكراً لكم. المساعد الصوتي نشط الآن وجاهز للاستخدام.")
                 if callback: callback(True)
                 return True
             else:
                 self.set_voice_permission(False)
-                self.speak("حسناً، يمكنك تفعيل الصوت في أي وقت من الإعدادات.")
+                self.speak("تم التعطيل. يمكنك تفعيل المساعد الصوتي في أي وقت عبر الإعدادات.")
                 if callback: callback(False)
                 return False
         return None

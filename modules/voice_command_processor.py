@@ -77,33 +77,33 @@ class VoiceCommandProcessor:
     def _parse_keywords(self, text: str) -> str:
         text_lower = text.strip()
         if any(k in text_lower for k in ["حلل الطعام", "صور", "كاميرا", "الأكل"]):
-            return self._execute_command({"command": "open_food", "response": "يلا بينا نحلل الأكل"})
+            return self._execute_command({"command": "open_food", "response": "جاري فتح كاميرا تحليل المكونات الغذائية."})
         if any(k in text_lower for k in ["تحدث معي", "كلمني", "أريد التحدث"]):
-            return self._execute_command({"command": "open_chat", "response": "أنا سامعك يا غالي، اتفضل"})
+            return self._execute_command({"command": "open_chat", "response": "المساعد الذكي جاهز للاستماع، تفضل بطرح سؤالك."})
         if any(k in text_lower for k in ["اغلاق", "أغلق", "توقف", "كفاية"]):
-            return self._execute_command({"command": "close_current", "response": "تمام، وقفت"})
+            return self._execute_command({"command": "close_current", "response": "تم إيقاف العملية الحالية."})
         if any(k in text_lower for k in ["ارجع للبداية", "ارجع ل البداية", "الصفحة الرئيسية", "الرئيسية", "البداية"]):
-            return self._execute_command({"command": "go_home", "response": "راجعين للبداية"})
+            return self._execute_command({"command": "go_home", "response": "جاري العودة إلى الشاشة الرئيسية."})
         if any(k in text_lower for k in ["اغلق البرنامج", "خروج"]):
-            return self._execute_command({"command": "exit_app", "response": "نشوفك على خير"})
+            return self._execute_command({"command": "exit_app", "response": "إلى اللقاء، أتمنى لكم السلامة."})
         if any(k in text_lower for k in ["القياسات", "بوابة المريض", "قياس", "الفحوصات", "اعمل قياس"]):
-            return self._execute_command({"command": "open_qr", "response": "تمام، هنعمل القياسات دلوقتي"})
+            return self._execute_command({"command": "open_qr", "response": "جاري فتح صفحة القياسات الحيوية للفحص."})
         if any(k in text_lower for k in ["السكر", "قياس السكر", "مستوى السكر"]):
             import re
             numbers = re.findall(r'\d+', text_lower)
             if numbers:
-                return self._execute_command({"command": "set_sugar", "parameters": {"value": numbers[0]}, "response": f"تمام، سجلت قياس السكر {numbers[0]}"})
+                return self._execute_command({"command": "set_sugar", "parameters": {"value": numbers[0]}, "response": f"تم تسجيل مستوى السكر بنجاح بقيمة {numbers[0]}."})
             else:
-                return self._execute_command({"command": "speak", "parameters": {"text": "قولي قيمة السكر"}, "response": "قولي قيمة السكر"})
+                return self._execute_command({"command": "speak", "parameters": {"text": "يرجى تزويدي بقيمة مستوى السكر لتسجيلها."}, "response": "يرجى تزويدي بقيمة مستوى السكر لتسجيلها."})
         if self.current_screen == "qr":
             import re
             numbers = re.findall(r'\d+', text_lower)
             if numbers:
-                return self._execute_command({"command": "set_sugar", "parameters": {"value": numbers[0]}, "response": f"تمام، سجلت {numbers[0]}"})
+                return self._execute_command({"command": "set_sugar", "parameters": {"value": numbers[0]}, "response": f"تم تسجيل القيمة {numbers[0]}."})
         if any(k in text_lower for k in ["ولد الكود", "حدث الكود", "تحديث", "اعمل qr", "كيوار"]):
-            return self._execute_command({"command": "generate_qr", "response": "تمام، بولد الكود"})
+            return self._execute_command({"command": "generate_qr", "response": "جاري إنشاء رمز الاستجابة السريعة للبيانات الحيوية."})
         if any(k in text_lower for k in ["افتح الرابط", "افتح اللينك", "افتح الموقع", "المتصفح"]):
-            return self._execute_command({"command": "open_browser", "response": "بفتحلك الرابط"})
+            return self._execute_command({"command": "open_browser", "response": "جاري فتح الرابط في متصفح الويب."})
         return self._execute_command({"command": "general_chat", "parameters": {"text": text}, "response": None})
     
     def _execute_command(self, result: dict) -> str:
@@ -152,9 +152,9 @@ class VoiceCommandProcessor:
     def _handle_chat(self, text: str) -> str:
         if any(k in text for k in ["اغلاق", "كفاية", "خروج", "انتهيت"]):
             self.context.reset()
-            return "تمام، لو عوزتني تاني اندهلي"
+            return "تم إغلاق المحادثة. يمكنك استدعائي في أي وقت."
         if self.callbacks.get("general_chat"): return self.callbacks["general_chat"](text)
-        return "أنا أستمع"
+        return "المساعد الذكي قيد الاستماع."
     
     def reset(self): self.context.reset()
 

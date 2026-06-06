@@ -363,8 +363,8 @@ class MainWindow(ctk.CTk):
         import threading
         
         def welcome_flow():
-            voice_assistant.speak("أهلاً بيك يا غالي! أنا مساعدك الطبي. أنا موجود هنا عشانك وعشان صحتك.")
-            voice_assistant.speak("تسمحلي أسمعك وأتكلم معاك؟")
+            voice_assistant.speak("مرحباً بكم. أنا المساعد الطبي الذكي، مصمم لتقديم خدمات الرعاية والمتابعة الصحية.")
+            voice_assistant.speak("هل تأذن لي بتفعيل المساعد الصوتي للتفاعل معكم؟")
         
         threading.Thread(target=welcome_flow, daemon=True).start()
     
@@ -399,7 +399,7 @@ class MainWindow(ctk.CTk):
     
     def _cmd_open_chat(self):
         self.after(0, lambda: self.show_screen("chat"))
-        self.after(500, lambda: voice_assistant.speak("أنا أستمع إليك، تحدث معي", wait=False))
+        self.after(500, lambda: voice_assistant.speak("المساعد الذكي قيد الاستماع الآن. تفضل بطرح سؤالك.", wait=False))
     
     def _cmd_close_current(self):
         if self.current_screen == "food":

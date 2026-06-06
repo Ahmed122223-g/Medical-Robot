@@ -231,7 +231,7 @@ class MedicationReminder:
                 for med in self.get_due_medications():
                     if current_time - last_notified.get(med.name, 0) > 300:
                         display_msg = f"Time for {med.name}\nDose: {med.dose}"
-                        voice_msg = f"حان وقت العلاج، {med.name.split(' ')[0]}"
+                        voice_msg = f"حان وقت تناول دواء {med.name.split(' ')[0]}"
                         if med.name == "Lantus SoloStar":
                             try:
                                 dose = med.calculated_dose
@@ -244,7 +244,7 @@ class MedicationReminder:
                                         if not calc.get("error"): dose = calc['total_dose']
                                 if dose and sugar:
                                     display_msg = f"Insulin dose time\nCalculated dose: {dose} units\n(Based on sugar {sugar})"
-                                    voice_msg = f"حان وقت جرعة الأنسولين، الجرعة المطلوبة هي {dose} وحدة"
+                                    voice_msg = f"حان وقت جرعة الأنسولين. القيمة المحسوبة للجرعة هي {dose} وحدة."
                             except: pass
                         alert = MedicationAlert(medication=med, scheduled_time=med.schedule_times[0] if med.schedule_times else "N/A",
                             alert_time=now_dt, alert_type="schedule", message=display_msg, voice_message=voice_msg)

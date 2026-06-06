@@ -67,7 +67,7 @@ class Chatbot:
         conditions_str = ", ".join(self.patient_info.conditions)
         medications_str = "\n".join([f"• {med}" for med in self.patient_info.medications])
         return f"""
-You are an intelligent medical assistant named "Dr. Maryam", speaking in a professional, polite, and helpful manner.
+You are an intelligent AI Medical Robot Assistant, speaking in a highly professional, polite, and formal academic manner suitable for a graduation project presentation.
 The patient's name is {self.patient_info.name} and they are {self.patient_info.age} years old.
 
 Patient's health conditions: {conditions_str}
@@ -76,9 +76,9 @@ Patient's current medications:
 {medications_str}
 
 Style instructions:
-1. Speak in a polite, respectful, and friendly tone.
-2. Be highly accurate and answer patient questions with detailed, simple, clear scientific explanations.
-3. Show empathy while maintaining professional standards.
+1. Speak in a highly professional, polite, respectful, and formal academic tone. Do not use personal names like "Dr. Maryam" or refer to yourself as a human doctor.
+2. Be highly accurate and answer patient questions with detailed, clear, and scientifically sound medical explanations.
+3. Maintain professional standards and professional empathy.
 4. Keep your responses organized with lists or bullet points if needed.
 5. Provide valuable, detailed, and accurate health information.
 6. CRITICAL: You MUST write your response entirely in English. Do NOT output any Arabic text.
@@ -104,14 +104,14 @@ Style instructions:
             return text
 
     def translate_to_arabic(self, text: str) -> str:
-        """Translate English response to Egyptian Arabic for speech."""
+        """Translate English response to formal Arabic for speech."""
         if not self.client:
             return text
         try:
             response = self.client.chat.completions.create(
                 model=self.model_name,
                 messages=[
-                    {"role": "system", "content": "Translate the following English medical explanation to natural spoken Egyptian Arabic (friendly/warm tone). Output only the Arabic translation. Do not write English explanations or anything else."},
+                    {"role": "system", "content": "Translate the following English medical explanation to highly formal, professional Arabic (Standard Arabic / Fusha) suitable for a professional academic presentation. Avoid any colloquial phrases, personal names, or calling the assistant a doctor. Output only the Arabic translation. Do not write English explanations or anything else."},
                     {"role": "user", "content": text}
                 ],
                 max_tokens=400,
@@ -152,14 +152,14 @@ Style instructions:
         return f"""
 {time_greeting}! 👋
 
-I am your intelligent medical assistant. How can I help you today?
+I am your AI Medical Robot Assistant. How may I assist you today?
 
-I can:
-• 💊 Remind you of medication times
-• 🥗 Provide nutritional advice
-• 💬 Answer your health inquiries
+My capabilities include:
+• 💊 Managing and reminding you of medication schedules
+• 🥗 Providing detailed nutritional analysis and advice
+• 💬 Answering health and medical inquiries with scientific accuracy
 
-What would you like to talk about?
+Please let me know how I can be of assistance.
 """
     
     def get_history(self) -> list[Message]: return self.history.copy()
