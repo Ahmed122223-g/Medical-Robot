@@ -175,7 +175,8 @@ class MainWindow(ctk.CTk):
                     ctk_widget = widget.master
                     
             if isinstance(ctk_widget, (ctk.CTkEntry, ctk.CTkTextbox)):
-                if self.keyboard and not (self.keyboard.is_visible and self.keyboard.target == ctk_widget):
+                print(f"[DEBUG] Focus in CTkEntry/CTkTextbox. Current target: {getattr(self.keyboard, 'target', None)}, New target: {ctk_widget}")
+                if self.keyboard:
                     self.keyboard.show(ctk_widget)
         except Exception as e:
             print(f"Keyboard focus error: {e}")

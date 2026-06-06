@@ -224,11 +224,10 @@ class VirtualKeyboard(ctk.CTkFrame):
     def show(self, target_widget):
         """Show keyboard for a specific input widget."""
         self.target = target_widget
-        if not self._visible:
-            self._visible = True
-            # Use grid for better alignment with the parent frame's layout
-            self.grid(row=1, column=0, sticky="ew")
-            self.lift()
+        self._visible = True
+        # Use grid for better alignment with the parent frame's layout
+        self.grid(row=1, column=0, sticky="ew")
+        self.lift()
     
     def hide(self):
         """Hide the keyboard."""
