@@ -114,9 +114,9 @@ class ResponsiveManager:
     Reference resolution: 1200x800 (design baseline).
     """
     
-    # Design baseline
-    BASE_W = 1200
-    BASE_H = 800
+    # Design baseline (Optimized for Raspberry Pi)
+    BASE_W = 800
+    BASE_H = 480
     
     def __init__(self):
         self._w = self.BASE_W
@@ -156,8 +156,8 @@ class ResponsiveManager:
         return self._scale_y
     
     def font_size(self, base_size: int) -> int:
-        """Scale a font size proportionally. Minimum 8."""
-        return max(8, int(base_size * self._scale))
+        """Scale a font size proportionally. Minimum 12 for readability."""
+        return max(12, int(base_size * self._scale))
     
     def size(self, base_size: int) -> int:
         """Scale a pixel dimension proportionally. Minimum 1."""
