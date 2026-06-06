@@ -54,13 +54,36 @@ def test_raw_recording():
         return False
 
     print(f"\n  Using device index {usb_index} for recording...")
-    print("  🎙️ Recording 3 seconds... SPEAK NOW!")
-
-    RATE = 16000
+    
+    # Get device info and find supported sample rate
+    dev_info = p.get_device_info_by_index(usb_index)
+    default_rate = int(dev_info['defaultSampleRate'])
+    print(f"  Device default sample rate: {default_rate} Hz")
+    
     CHANNELS = 1
     FORMAT = pyaudio.paInt16
     CHUNK = 1024
     DURATION = 3
+    
+    # Try the default rate first, then common fallbacks
+    RATE = None
+    for try_rate in [default_rate, 44100, 48000, 16000, 8000, 22050]:
+        try:
+            test_supported = p.is_format_supported(
+                try_rate, input_device=usb_index,
+                input_channels=CHANNELS, input_format=FORMAT)
+            RATE = try_rate
+            print(f"  Using sample rate: {RATE} Hz")
+            break
+        except ValueError:
+            continue
+    
+    if RATE is None:
+        print("  ❌ Could not find a supported sample rate for this microphone!")
+        p.terminate()
+        return False
+    
+    print("  🎙️ Recording 3 seconds... SPEAK NOW!")
 
     try:
         stream = p.open(format=FORMAT, channels=CHANNELS, rate=RATE,
