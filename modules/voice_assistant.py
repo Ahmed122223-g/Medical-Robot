@@ -51,6 +51,7 @@ class VoiceAssistant:
         self.on_speech_callback: Optional[Callable] = None
         self.recognizer = sr.Recognizer() if SR_AVAILABLE else None
         self.microphone = None
+        self._mic_device_index = self._find_usb_mic_index()
         self.elevenlabs_client = None
         if ELEVENLABS_AVAILABLE and self.api_key:
             try:
@@ -61,6 +62,21 @@ class VoiceAssistant:
         self._listen_thread = None
         self._stop_listening = threading.Event()
         self.elevenlabs_quota_exceeded = False
+    
+    def _find_usb_mic_index(self):
+        """Auto-detect USB microphone device index."""
+        if not SR_AVAILABLE:
+            return None
+        try:
+            mic_names = sr.Microphone.list_microphone_names()
+            for idx, name in enumerate(mic_names):
+                name_lower = name.lower()
+                if 'usb' in name_lower and ('audio' in name_lower or 'sound' in name_lower or 'pnp' in name_lower):
+                    print(f"[VoiceAssistant] Found USB microphone: '{name}' at index {idx}")
+                    return idx
+        except Exception as e:
+            print(f"[VoiceAssistant] Error detecting USB mic: {e}")
+        return None
     
     def set_voice_permission(self, allowed: bool):
         self.listening_enabled = allowed
@@ -242,7 +258,10 @@ class VoiceAssistant:
     
     def _listen_loop(self):
         try:
-            with sr.Microphone() as source:
+            mic_kwargs = {}
+            if self._mic_device_index is not None:
+                mic_kwargs['device_index'] = self._mic_device_index
+            with sr.Microphone(**mic_kwargs) as source:
                 self.recognizer.adjust_for_ambient_noise(source, duration=1)
                 while not self._stop_listening.is_set():
                     try:
@@ -261,7 +280,10 @@ class VoiceAssistant:
     def listen_once(self) -> Optional[str]:
         if not SR_AVAILABLE: return None
         try:
-            with sr.Microphone() as source:
+            mic_kwargs = {}
+            if self._mic_device_index is not None:
+                mic_kwargs['device_index'] = self._mic_device_index
+            with sr.Microphone(**mic_kwargs) as source:
                 self.recognizer.adjust_for_ambient_noise(source, duration=0.5)
                 audio = self.recognizer.listen(source, timeout=10, phrase_time_limit=15)
                 return self.recognizer.recognize_google(audio, language="ar-EG")
