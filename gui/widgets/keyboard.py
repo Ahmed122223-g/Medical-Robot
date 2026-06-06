@@ -227,7 +227,7 @@ class VirtualKeyboard(ctk.CTkFrame):
         self._visible = True
         # Use tkinter's native place (bypass CTkFrame override that blocks height)
         import tkinter as tk
-        tk.Frame.place(self, relx=0, rely=1.0, anchor="sw", relwidth=1.0, height=250)
+        tk.Frame.place(self, relx=0, rely=1.0, anchor="sw", relwidth=1.0, height=340)
         self.lift()
     
     def hide(self):
