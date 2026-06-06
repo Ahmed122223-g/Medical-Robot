@@ -86,10 +86,10 @@ class MainWindow(ctk.CTk):
         self.current_screen: Optional[str] = None
         self._resize_timer = None
         
+        self.keyboard = None
         self._create_layout()
         
         self.voice_permission_granted = config.VOICE_ENABLED
-        self.keyboard = None
         
         self.after(100, self._start_services_async)
         
