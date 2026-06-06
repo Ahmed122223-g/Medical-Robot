@@ -67,27 +67,61 @@ class VoiceAssistant:
         if not allowed:
             self.stop_listening()
     
+    def _clean_text_for_speech(self, text: str) -> str:
+        """Remove emojis, markdown formatting, and special characters from text before speech."""
+        if not text:
+            return ""
+        
+        import re
+        
+        # 1. Remove markdown formatting characters
+        text = re.sub(r'[*_`#~=\-\+\[\]\{\}\(\)\<\>]', ' ', text)
+        
+        # 2. Filter out non-alphanumeric/non-basic punctuation characters (like emojis)
+        cleaned_chars = []
+        for char in text:
+            code = ord(char)
+            # Allow:
+            # - Standard ASCII & Latin/European characters (code < 0x0370)
+            # - Arabic character blocks (0x0600-0x06FF, 0x0750-0x077F, 0x08A0-0x08FF)
+            if (code < 0x0370) or (0x0600 <= code <= 0x06FF) or (0x0750 <= code <= 0x077F) or (0x08A0 <= code <= 0x08FF):
+                # Exclude specific symbol/punctuation marks that are not naturally spoken
+                if char not in ['*', '_', '`', '#', '~', '=', '-', '+', '[', ']', '{', '}', '<', '>', '/', '\\', '|', '^']:
+                    cleaned_chars.append(char)
+            else:
+                # Replace symbol/emoji with a space
+                cleaned_chars.append(' ')
+                
+        cleaned_text = "".join(cleaned_chars)
+        
+        # 3. Clean up multiple whitespaces
+        cleaned_text = re.sub(r'\s+', ' ', cleaned_text).strip()
+        return cleaned_text
+
     def speak(self, text: str, wait: bool = True):
         if not self.voice_enabled or not text:
+            return
+        cleaned_text = self._clean_text_for_speech(text)
+        if not cleaned_text:
             return
         self.is_speaking = True
         def _speak():
             try:
                 if self.elevenlabs_client and not self.elevenlabs_quota_exceeded:
-                    self._speak_elevenlabs(text)
+                    self._speak_elevenlabs(cleaned_text)
                 elif EDGE_TTS_AVAILABLE:
-                    self._speak_edge_tts(text)
+                    self._speak_edge_tts(cleaned_text)
                 else:
-                    self._speak_offline(text)
+                    self._speak_offline(cleaned_text)
             except:
                 if EDGE_TTS_AVAILABLE:
                     try:
-                        self._speak_edge_tts(text)
+                        self._speak_edge_tts(cleaned_text)
                         return
                     except:
                         pass
                 try:
-                    self._speak_offline(text)
+                    self._speak_offline(cleaned_text)
                 except:
                     pass
             finally:
