@@ -62,6 +62,16 @@ class VoiceAssistant:
         self._listen_thread = None
         self._stop_listening = threading.Event()
         self.elevenlabs_quota_exceeded = False
+        
+        # Initialize Gemini for Speech Recognition
+        self.gemini_model = None
+        if config.GEMINI_API_KEY:
+            try:
+                import google.generativeai as genai
+                genai.configure(api_key=config.GEMINI_API_KEY)
+                self.gemini_model = genai.GenerativeModel('gemini-2.0-flash')
+            except Exception as e:
+                print(f"[VoiceAssistant] Error initializing Gemini: {e}")
     
     def _find_usb_mic_index(self):
         """Auto-detect USB microphone device index."""
@@ -269,13 +279,55 @@ class VoiceAssistant:
                             time.sleep(0.1)
                             continue
                         audio = self.recognizer.listen(source, timeout=5, phrase_time_limit=10)
-                        text = self.recognizer.recognize_google(audio, language="ar-EG")
+                        text = self._transcribe_with_gemini(audio)
                         if text: self._process_command(text)
                     except sr.WaitTimeoutError: continue
                     except sr.UnknownValueError: continue
                     except sr.RequestError: time.sleep(1)
         except:
             self.is_listening = False
+
+    def _transcribe_with_gemini(self, audio_data: sr.AudioData) -> Optional[str]:
+        """Transcribe audio using Gemini instead of Google Web API to avoid FLAC dependency."""
+        if not self.gemini_model:
+            # Fallback to Google if Gemini is not available
+            return self.recognizer.recognize_google(audio_data, language="ar-EG")
+            
+        try:
+            import tempfile
+            import os
+            import google.generativeai as genai
+            
+            # Save audio to a temporary WAV file
+            with tempfile.NamedTemporaryFile(suffix=".wav", delete=False) as tmp_file:
+                tmp_file.write(audio_data.get_wav_data())
+                tmp_path = tmp_file.name
+                
+            try:
+                # Upload and transcribe
+                audio_file = genai.upload_file(tmp_path)
+                response = self.gemini_model.generate_content([
+                    "استخرج النص من هذا المقطع الصوتي واكتبه كما هو باللغة العربية بالضبط، بدون أي مقدمات أو تعليقات.",
+                    audio_file
+                ])
+                text = response.text.strip()
+                try: genai.delete_file(audio_file.name)
+                except: pass
+                
+                if text:
+                    print(f"[VoiceAssistant] Gemini Recognized: '{text}'")
+                    return text
+            finally:
+                if os.path.exists(tmp_path):
+                    os.remove(tmp_path)
+        except Exception as e:
+            print(f"[VoiceAssistant] Gemini Transcription Error: {e}")
+            # Fallback to Google
+            try:
+                return self.recognizer.recognize_google(audio_data, language="ar-EG")
+            except:
+                pass
+        return None
     
     def listen_once(self) -> Optional[str]:
         if not SR_AVAILABLE: return None
@@ -286,7 +338,7 @@ class VoiceAssistant:
             with sr.Microphone(**mic_kwargs) as source:
                 self.recognizer.adjust_for_ambient_noise(source, duration=0.5)
                 audio = self.recognizer.listen(source, timeout=10, phrase_time_limit=15)
-                return self.recognizer.recognize_google(audio, language="ar-EG")
+                return self._transcribe_with_gemini(audio)
         except:
             return None
     

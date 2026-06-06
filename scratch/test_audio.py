@@ -139,49 +139,48 @@ def test_raw_recording():
         return False
 
 def test_speech_recognition(mic_works):
-    """Test Google Speech Recognition with the USB mic."""
-    print("\n[3/3] Testing SPEECH RECOGNITION...")
+    """Test Speech Recognition using Gemini 2.0 Flash (bypasses FLAC requirement)."""
+    print("\n[3/3] Testing SPEECH RECOGNITION (using Gemini)...")
     if not mic_works:
         print("  ⏭️ Skipping (microphone test failed).")
         return
 
-    try:
-        import speech_recognition as sr
-    except ImportError:
-        print("  ❌ SpeechRecognition not installed.")
+    import google.generativeai as genai
+    from config import config
+    
+    if not config.GEMINI_API_KEY:
+        print("  ❌ GEMINI_API_KEY not found in .env")
         return
 
-    # Find USB mic index
-    usb_index = None
-    try:
-        for idx, name in enumerate(sr.Microphone.list_microphone_names()):
-            if 'usb' in name.lower():
-                usb_index = idx
-                break
-    except:
-        pass
+    genai.configure(api_key=config.GEMINI_API_KEY)
+    
+    wav_path = os.path.join(PROJECT_ROOT, "scratch", "test_recording.wav")
+    if not os.path.exists(wav_path):
+        print("  ❌ test_recording.wav not found. Cannot test Gemini recognition.")
+        return
 
-    print(f"  Using mic index: {usb_index}")
-    print("  🎙️ Say something clearly now (10 seconds timeout)...")
-
+    print("  ⏳ Sending recording to Gemini API...")
     try:
-        recognizer = sr.Recognizer()
-        mic_kwargs = {'device_index': usb_index} if usb_index is not None else {}
-        with sr.Microphone(**mic_kwargs) as source:
-            recognizer.adjust_for_ambient_noise(source, duration=1)
-            print("  Listening...")
-            audio = recognizer.listen(source, timeout=10, phrase_time_limit=10)
-            print("  Processing with Google...")
-            text = recognizer.recognize_google(audio, language="ar-EG")
-            print(f"\n  ✅ Recognized: \"{text}\"")
-    except sr.WaitTimeoutError:
-        print("  ❌ Timeout: No speech detected within 10 seconds.")
-    except sr.UnknownValueError:
-        print("  ❌ Could not understand the audio (try speaking louder/closer).")
-    except sr.RequestError as e:
-        print(f"  ❌ Google API error (need internet): {e}")
+        model = genai.GenerativeModel('gemini-2.0-flash')
+        
+        # Upload the file
+        audio_file = genai.upload_file(wav_path)
+        
+        response = model.generate_content([
+            "استخرج النص من هذا المقطع الصوتي واكتبه كما هو باللغة العربية بالضبط، بدون إضافة أي تعليقات أو مقدمات.",
+            audio_file
+        ])
+        
+        print(f"\n  ✅ Recognized: \"{response.text.strip()}\"")
+        
+        # Cleanup
+        try:
+            genai.delete_file(audio_file.name)
+        except:
+            pass
+            
     except Exception as e:
-        print(f"  ❌ Error: {e}")
+        print(f"  ❌ Gemini API error: {e}")
 
 def main():
     print("=" * 55)
