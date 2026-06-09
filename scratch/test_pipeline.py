@@ -77,25 +77,24 @@ def synthesize_speech_espeak(text: str):
 
 def test_pipeline():
     print("="*60)
-    print("  MIC -> AI -> SPEAKER PIPELINE TEST")
+    print("  MIC -> GROQ (WHISPER) -> GROQ (LLAMA) -> SPEAKER TEST")
     print("="*60)
     
     import speech_recognition as sr
-    import google.generativeai as genai
+    from groq import Groq
     
-    GEMINI_API_KEY = os.getenv("GEMINI_API_KEY")
-    if not GEMINI_API_KEY:
-        print("❌ GEMINI_API_KEY is missing from .env!")
+    GROQ_API_KEY = os.getenv("GROQ_API_KEY")
+    if not GROQ_API_KEY:
+        print("❌ GROQ_API_KEY is missing from .env!")
         return
 
-    genai.configure(api_key=GEMINI_API_KEY)
-    model = genai.GenerativeModel('gemini-2.0-flash')
+    groq_client = Groq(api_key=GROQ_API_KEY)
     
     recognizer = sr.Recognizer()
     
     mic_kwargs = {
-        'device_index': 1,      # Explicitly set to 1 for the USB sound card
-        'sample_rate': 44100,   # Prevents [Errno -9997] Invalid sample rate
+        'device_index': 1,      
+        'sample_rate': 44100,   
         'chunk_size': 4096      
     }
     
@@ -113,23 +112,22 @@ def test_pipeline():
         print(f"  ❌ Microphone error: {e}")
         return
 
-    print("\n[2] Transcribing with Gemini AI...")
+    print("\n[2] Transcribing with Groq Whisper...")
     try:
         wav_data = audio.get_wav_data()
         temp_wav = os.path.join(tempfile.gettempdir(), f"input_{int(time.time())}.wav")
         with open(temp_wav, "wb") as f:
             f.write(wav_data)
         
-        audio_file = genai.upload_file(temp_wav)
-        response = model.generate_content([
-            "استخرج النص من هذا المقطع الصوتي واكتبه كما هو باللغة العربية بالضبط، بدون أي مقدمات.",
-            audio_file
-        ])
-        recognized_text = response.text.strip()
+        with open(temp_wav, "rb") as audio_file:
+            transcription = groq_client.audio.transcriptions.create(
+                file=(temp_wav, audio_file.read()),
+                model="whisper-large-v3",
+                language="ar"
+            )
+            recognized_text = transcription.text.strip()
+            
         print(f"  ✅ Recognized: \"{recognized_text}\"")
-        
-        try: genai.delete_file(audio_file.name)
-        except: pass
         try: os.unlink(temp_wav)
         except: pass
         
@@ -141,14 +139,32 @@ def test_pipeline():
         print("  ⚠️ No text recognized. Pipeline stopped.")
         return
 
-    print("\n[3] Generating AI Response Audio...")
-    reply_text = f"أهلاً بك، لقد سمعتُك تقول: {recognized_text}"
-    print(f"  🤖 AI says: {reply_text}")
-    
+    print("\n[3] Generating AI Response with LLaMA (Groq)...")
+    try:
+        chat_completion = groq_client.chat.completions.create(
+            messages=[
+                {
+                    "role": "system",
+                    "content": "أنت مساعد طبي ذكي. قم بالرد بترحيب قصير باللغة العربية على هذه الكلمة."
+                },
+                {
+                    "role": "user",
+                    "content": recognized_text,
+                }
+            ],
+            model="llama-3.3-70b-versatile",
+        )
+        reply_text = chat_completion.choices[0].message.content.strip()
+        print(f"  🤖 LLaMA AI says: {reply_text}")
+    except Exception as e:
+        print(f"  ❌ AI Response error: {e}")
+        return
+
+    print("\n[4] Generating Audio Response (TTS)...")
     audio_path = synthesize_speech_edge(reply_text)
     
     if audio_path and os.path.exists(audio_path):
-        print("\n[4] Playing Response Audio...")
+        print("\n[5] Playing Response Audio...")
         play_audio(audio_path)
         try: os.unlink(audio_path)
         except: pass

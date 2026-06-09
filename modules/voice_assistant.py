@@ -280,7 +280,7 @@ class VoiceAssistant:
                             time.sleep(0.1)
                             continue
                         audio = self.recognizer.listen(source, timeout=5, phrase_time_limit=10)
-                        text = self._transcribe_with_gemini(audio)
+                        text = self._transcribe_audio(audio)
                         if text: self._process_command(text)
                     except sr.WaitTimeoutError: continue
                     except sr.UnknownValueError: continue
@@ -291,47 +291,42 @@ class VoiceAssistant:
             traceback.print_exc()
             self.is_listening = False
 
-    def _transcribe_with_gemini(self, audio_data: sr.AudioData) -> Optional[str]:
-        """Transcribe audio using Gemini instead of Google Web API to avoid FLAC dependency."""
-        if not self.gemini_model:
-            # Fallback to Google if Gemini is not available
-            return self.recognizer.recognize_google(audio_data, language="ar-EG")
-            
+    def _transcribe_audio(self, audio_data: sr.AudioData) -> Optional[str]:
+        """Transcribe audio using Groq Whisper to avoid FLAC dependency and be faster."""
         try:
             import tempfile
             import os
-            import google.generativeai as genai
+            from groq import Groq
             
-            # Save audio to a temporary WAV file
-            with tempfile.NamedTemporaryFile(suffix=".wav", delete=False) as tmp_file:
-                tmp_file.write(audio_data.get_wav_data())
-                tmp_path = tmp_file.name
+            api_key = config.GROQ_API_KEY
+            if not api_key: return None
+            
+            client = Groq(api_key=api_key)
+            wav_data = audio_data.get_wav_data()
+            
+            # Save to temporary file
+            tmp_path = os.path.join(tempfile.gettempdir(), f"audio_{int(time.time()*1000)}.wav")
+            with open(tmp_path, "wb") as f:
+                f.write(wav_data)
                 
             try:
-                # Upload and transcribe
-                audio_file = genai.upload_file(tmp_path)
-                response = self.gemini_model.generate_content([
-                    "استخرج النص من هذا المقطع الصوتي واكتبه كما هو باللغة العربية بالضبط، بدون أي مقدمات أو تعليقات.",
-                    audio_file
-                ])
-                text = response.text.strip()
-                try: genai.delete_file(audio_file.name)
+                # Transcribe with Whisper
+                with open(tmp_path, "rb") as audio_file:
+                    transcription = client.audio.transcriptions.create(
+                        file=(tmp_path, audio_file.read()),
+                        model="whisper-large-v3",
+                        language="ar"
+                    )
+                text = transcription.text.strip()
+                return text
+            finally:
+                # Cleanup
+                try: os.unlink(tmp_path)
                 except: pass
                 
-                if text:
-                    print(f"[VoiceAssistant] Gemini Recognized: '{text}'")
-                    return text
-            finally:
-                if os.path.exists(tmp_path):
-                    os.remove(tmp_path)
         except Exception as e:
-            print(f"[VoiceAssistant] Gemini Transcription Error: {e}")
-            # Fallback to Google
-            try:
-                return self.recognizer.recognize_google(audio_data, language="ar-EG")
-            except:
-                pass
-        return None
+            print(f"[VoiceAssistant] Whisper transcription error: {e}")
+            return None
     
     def listen_once(self) -> Optional[str]:
         if not SR_AVAILABLE: return None
@@ -342,7 +337,7 @@ class VoiceAssistant:
             with sr.Microphone(**mic_kwargs) as source:
                 self.recognizer.adjust_for_ambient_noise(source, duration=0.5)
                 audio = self.recognizer.listen(source, timeout=10, phrase_time_limit=15)
-                return self._transcribe_with_gemini(audio)
+                return self._transcribe_audio(audio)
         except:
             return None
     
