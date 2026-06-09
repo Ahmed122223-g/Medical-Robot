@@ -51,7 +51,8 @@ class VoiceAssistant:
         self.on_speech_callback: Optional[Callable] = None
         self.recognizer = sr.Recognizer() if SR_AVAILABLE else None
         self.microphone = None
-        self._mic_device_index = self._find_usb_mic_index()
+        # تم تحديد رقم المايك (1) بناءً على اختبار sounddevice 
+        self._mic_device_index = 1
         self.elevenlabs_client = None
         if ELEVENLABS_AVAILABLE and self.api_key:
             try:
