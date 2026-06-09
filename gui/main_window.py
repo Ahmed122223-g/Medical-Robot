@@ -358,6 +358,10 @@ class MainWindow(ctk.CTk):
         voice_command_processor.set_callback("set_sugar", self._cmd_set_sugar)
         voice_command_processor.set_callback("generate_qr", self._cmd_generate_qr)
         voice_command_processor.set_callback("open_browser", self._cmd_open_browser)
+        
+        if self.voice_permission_granted:
+            voice_assistant.set_voice_permission(True)
+            voice_assistant.start_listening()
     
     def _play_welcome(self):
         import threading

@@ -269,7 +269,7 @@ class VoiceAssistant:
     
     def _listen_loop(self):
         try:
-            mic_kwargs = {}
+            mic_kwargs = {'sample_rate': 44100, 'chunk_size': 4096}
             if self._mic_device_index is not None:
                 mic_kwargs['device_index'] = self._mic_device_index
             with sr.Microphone(**mic_kwargs) as source:
@@ -285,7 +285,10 @@ class VoiceAssistant:
                     except sr.WaitTimeoutError: continue
                     except sr.UnknownValueError: continue
                     except sr.RequestError: time.sleep(1)
-        except:
+        except Exception as e:
+            print(f"[VoiceAssistant] Listen loop crashed: {e}")
+            import traceback
+            traceback.print_exc()
             self.is_listening = False
 
     def _transcribe_with_gemini(self, audio_data: sr.AudioData) -> Optional[str]:
@@ -333,7 +336,7 @@ class VoiceAssistant:
     def listen_once(self) -> Optional[str]:
         if not SR_AVAILABLE: return None
         try:
-            mic_kwargs = {}
+            mic_kwargs = {'sample_rate': 44100, 'chunk_size': 4096}
             if self._mic_device_index is not None:
                 mic_kwargs['device_index'] = self._mic_device_index
             with sr.Microphone(**mic_kwargs) as source:
