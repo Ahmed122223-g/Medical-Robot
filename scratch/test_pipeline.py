@@ -1,17 +1,15 @@
 #!/usr/bin/env python3
 """
 Standalone Mic -> Groq Whisper -> Groq LLaMA -> Speaker test.
-Uses sounddevice (proven to work) instead of speech_recognition/PyAudio.
+Uses arecord directly (proven to work on this Pi) to bypass PortAudio/PulseAudio issues.
 """
 import os
 import sys
 import time
-import wave
 import tempfile
 import platform
 import subprocess
 import asyncio
-import numpy as np
 from pathlib import Path
 
 PROJECT_ROOT = Path(__file__).resolve().parent.parent
@@ -23,39 +21,32 @@ try:
 except ImportError:
     pass
 
-import sounddevice as sd
 from groq import Groq
 
 # ─── Audio playback ───────────────────────────────────────────────
 def play_audio(filepath: str):
-    system = platform.system()
-    if system == 'Linux':
-        import shutil
-        if shutil.which("ffplay"):
-            subprocess.run(["ffplay", "-nodisp", "-autoexit", "-loglevel", "quiet", filepath])
-            return
-        elif shutil.which("mpg123"):
-            subprocess.run(["mpg123", "-q", filepath])
-            return
-        elif filepath.endswith(".wav") and shutil.which("aplay"):
-            subprocess.run(["aplay", "-q", filepath])
-            return
-    # Fallback: pygame
-    try:
-        import pygame
-        if not pygame.mixer.get_init():
-            pygame.mixer.init()
-        pygame.mixer.music.load(filepath)
-        pygame.mixer.music.play()
-        while pygame.mixer.music.get_busy():
-            time.sleep(0.1)
-        pygame.mixer.music.unload()
-    except Exception as e:
-        print(f"  [Audio] Playback error: {e}")
+    import shutil
+    if shutil.which("ffplay"):
+        subprocess.run(["ffplay", "-nodisp", "-autoexit", "-loglevel", "quiet", filepath])
+    elif shutil.which("mpg123"):
+        subprocess.run(["mpg123", "-q", filepath])
+    elif filepath.endswith(".wav") and shutil.which("aplay"):
+        subprocess.run(["aplay", "-q", filepath])
+    else:
+        try:
+            import pygame
+            if not pygame.mixer.get_init():
+                pygame.mixer.init()
+            pygame.mixer.music.load(filepath)
+            pygame.mixer.music.play()
+            while pygame.mixer.music.get_busy():
+                time.sleep(0.1)
+            pygame.mixer.music.unload()
+        except Exception as e:
+            print(f"  [Audio] Playback error: {e}")
 
 # ─── TTS ──────────────────────────────────────────────────────────
-def synthesize_speech(text: str) -> str:
-    """Generate speech audio file using edge_tts, return file path."""
+def synthesize_speech(text: str):
     try:
         import edge_tts
         temp_file = os.path.join(tempfile.gettempdir(), f"response_{int(time.time())}.mp3")
@@ -68,60 +59,35 @@ def synthesize_speech(text: str) -> str:
         loop.close()
         return temp_file
     except Exception as e:
-        print(f"  [TTS] edge_tts error: {e}")
-        # fallback: espeak
-        if platform.system() == "Linux":
-            subprocess.run(["espeak", "-v", "ar", text], capture_output=True)
+        print(f"  [TTS] edge_tts error: {e}, trying espeak...")
+        subprocess.run(["espeak", "-v", "ar", text], capture_output=True)
         return None
 
-# ─── Record with sounddevice ─────────────────────────────────────
-def record_audio(device_id=1, sample_rate=44100, max_seconds=10, silence_thresh=0.01, silence_duration=1.5):
-    """
-    Record from microphone until silence is detected or max time is reached.
-    Returns the path to a temporary WAV file.
-    """
-    chunk_duration = 0.5  # seconds per chunk
-    chunk_samples = int(sample_rate * chunk_duration)
-    chunks = []
-    silent_chunks = 0
-    max_silent = int(silence_duration / chunk_duration)
-    max_chunks = int(max_seconds / chunk_duration)
-
-    print(f"  [Recording up to {max_seconds}s, will stop on {silence_duration}s silence]")
-
-    for i in range(max_chunks):
-        audio_chunk = sd.rec(chunk_samples, samplerate=sample_rate, channels=1, dtype='int16', device=device_id)
-        sd.wait()
-        chunks.append(audio_chunk)
-
-        # Check volume level
-        rms = np.sqrt(np.mean(audio_chunk.astype(np.float32) ** 2)) / 32768.0
-        bar = "█" * int(rms * 200)
-        print(f"\r  🎤 Level: [{bar:<20}] {rms:.4f}", end="", flush=True)
-
-        if rms < silence_thresh:
-            silent_chunks += 1
-        else:
-            silent_chunks = 0
-
-        # Stop after enough silence (but only if we got some audio first)
-        if silent_chunks >= max_silent and len(chunks) > max_silent + 2:
-            break
-
-    print()  # newline after the level meter
-
-    all_audio = np.concatenate(chunks)
-
-    # Save to WAV
+# ─── Record with arecord (PROVEN TO WORK) ────────────────────────
+def record_audio(duration=6):
+    """Record using arecord directly via ALSA - bypasses PulseAudio completely."""
     tmp_path = os.path.join(tempfile.gettempdir(), f"mic_{int(time.time())}.wav")
-    with wave.open(tmp_path, 'w') as wf:
-        wf.setnchannels(1)
-        wf.setsampwidth(2)  # 16-bit
-        wf.setframerate(sample_rate)
-        wf.writeframes(all_audio.tobytes())
-
-    duration = len(all_audio) / sample_rate
-    print(f"  ✅ Recorded {duration:.1f} seconds -> {tmp_path}")
+    
+    cmd = [
+        "arecord",
+        "-D", "plughw:1,0",   # USB sound card directly
+        "-f", "S16_LE",       # 16-bit signed little-endian
+        "-r", "16000",        # 16kHz (good for speech, Whisper prefers this)
+        "-c", "1",            # Mono
+        "-d", str(duration),  # Duration in seconds
+        "-q",                 # Quiet (no verbose output)
+        tmp_path
+    ]
+    
+    print(f"  ⏳ Recording {duration} seconds... SPEAK NOW!")
+    result = subprocess.run(cmd, capture_output=True, text=True, timeout=duration + 5)
+    
+    if result.returncode != 0:
+        print(f"  ❌ arecord failed: {result.stderr}")
+        return None
+    
+    file_size = os.path.getsize(tmp_path)
+    print(f"  ✅ Recorded! File size: {file_size} bytes")
     return tmp_path
 
 # ─── Main pipeline ───────────────────────────────────────────────
@@ -136,20 +102,14 @@ def test_pipeline():
         return
     client = Groq(api_key=api_key)
 
-    # ── Step 1: List devices ──
-    print("\n[1] Audio devices:")
-    print(sd.query_devices())
-
-    # ── Step 2: Record ──
-    print("\n[2] 🎤 SPEAK NOW! (Say 'مرحبا' or anything)")
-    try:
-        wav_path = record_audio(device_id=1, sample_rate=44100)
-    except Exception as e:
-        print(f"  ❌ Recording failed: {e}")
+    # ── Step 1: Record ──
+    print("\n[1] 🎤 Recording from USB mic (plughw:1,0)...")
+    wav_path = record_audio(duration=6)
+    if not wav_path:
         return
 
-    # ── Step 3: Transcribe with Groq Whisper ──
-    print("\n[3] Transcribing with Groq Whisper...")
+    # ── Step 2: Transcribe with Groq Whisper ──
+    print("\n[2] 📝 Transcribing with Groq Whisper...")
     try:
         with open(wav_path, "rb") as f:
             transcription = client.audio.transcriptions.create(
@@ -170,8 +130,8 @@ def test_pipeline():
         print("  ⚠️ No speech detected.")
         return
 
-    # ── Step 4: Generate AI reply with LLaMA ──
-    print("\n[4] Generating reply with LLaMA...")
+    # ── Step 3: Generate AI reply with LLaMA ──
+    print("\n[3] 🤖 Generating reply with LLaMA...")
     try:
         completion = client.chat.completions.create(
             messages=[
@@ -181,20 +141,20 @@ def test_pipeline():
             model="llama-3.3-70b-versatile",
         )
         reply = completion.choices[0].message.content.strip()
-        print(f"  🤖 AI: {reply}")
+        print(f"  🤖 AI says: {reply}")
     except Exception as e:
         print(f"  ❌ LLaMA error: {e}")
         return
 
-    # ── Step 5: Speak the reply ──
-    print("\n[5] Speaking response...")
+    # ── Step 4: Speak the reply ──
+    print("\n[4] 🔊 Speaking response...")
     audio_path = synthesize_speech(reply)
     if audio_path and os.path.exists(audio_path):
         play_audio(audio_path)
         try: os.unlink(audio_path)
         except: pass
     else:
-        print("  ⚠️ TTS failed.")
+        print("  ⚠️ TTS fallback used (espeak).")
 
     print("\n" + "=" * 60)
     print("  ✅ PIPELINE TEST COMPLETE!")
