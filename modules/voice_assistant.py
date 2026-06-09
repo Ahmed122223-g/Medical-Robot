@@ -3,6 +3,9 @@ import sys
 import threading
 import tempfile
 import time
+import platform
+import subprocess
+import shutil
 from typing import Optional, Callable
 from pathlib import Path
 
@@ -267,41 +270,158 @@ class VoiceAssistant:
         self._stop_listening.set()
         self.is_listening = False
     
-    def _listen_loop(self):
+    def _record_arecord(self, duration: int) -> Optional[str]:
+        """Record using arecord directly via ALSA - bypasses PulseAudio completely."""
+        tmp_path = os.path.join(tempfile.gettempdir(), f"mic_{int(time.time()*1000)}.wav")
+        
+        cmd = [
+            "arecord",
+            "-D", "plughw:1,0",   # USB sound card directly
+            "-f", "S16_LE",       # 16-bit signed little-endian
+            "-r", "16000",        # 16kHz (good for speech, Whisper prefers this)
+            "-c", "1",            # Mono
+            "-d", str(duration),  # Duration in seconds
+            "-q",                 # Quiet (no verbose output)
+            tmp_path
+        ]
+        
         try:
-            mic_kwargs = {'sample_rate': 44100, 'chunk_size': 4096}
-            if self._mic_device_index is not None:
-                mic_kwargs['device_index'] = self._mic_device_index
-            with sr.Microphone(**mic_kwargs) as source:
-                self.recognizer.adjust_for_ambient_noise(source, duration=1)
-                while not self._stop_listening.is_set():
+            # Use subprocess.Popen so we can monitor and terminate it early
+            process = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+            
+            # Check status of process and check if we need to stop
+            start_time = time.time()
+            while time.time() - start_time < duration:
+                # If we need to stop listening or start speaking, terminate the recording
+                if self._stop_listening.is_set() or self.is_speaking:
+                    process.terminate()
                     try:
-                        if self.is_speaking:
-                            time.sleep(0.1)
-                            continue
-                        audio = self.recognizer.listen(source, timeout=5, phrase_time_limit=10)
-                        text = self._transcribe_audio(audio)
-                        if text: self._process_command(text)
-                    except sr.WaitTimeoutError: continue
-                    except sr.UnknownValueError: continue
-                    except sr.RequestError: time.sleep(1)
+                        process.wait(timeout=1)
+                    except subprocess.TimeoutExpired:
+                        process.kill()
+                    if os.path.exists(tmp_path):
+                        try: os.unlink(tmp_path)
+                        except: pass
+                    return None
+                
+                # Check if the process exited early for some reason (error)
+                if process.poll() is not None:
+                    break
+                    
+                time.sleep(0.1)
+                
+            # Wait for process to finish completely if it's still running
+            if process.poll() is None:
+                try:
+                    process.wait(timeout=2)
+                except subprocess.TimeoutExpired:
+                    process.terminate()
+                    process.wait()
+            
+            # Check exit code
+            if process.returncode != 0:
+                stderr = process.stderr.read().decode('utf-8', errors='ignore')
+                print(f"[VoiceAssistant] arecord failed with code {process.returncode}: {stderr}")
+                if os.path.exists(tmp_path):
+                    try: os.unlink(tmp_path)
+                    except: pass
+                return None
+                
+            if not os.path.exists(tmp_path) or os.path.getsize(tmp_path) == 0:
+                print(f"[VoiceAssistant] arecord produced empty file or file doesn't exist.")
+                return None
+                
+            return tmp_path
+            
         except Exception as e:
-            print(f"[VoiceAssistant] Listen loop crashed: {e}")
-            import traceback
-            traceback.print_exc()
-            self.is_listening = False
+            print(f"[VoiceAssistant] Exception while recording with arecord: {e}")
+            if os.path.exists(tmp_path):
+                try: os.unlink(tmp_path)
+                except: pass
+            return None
+
+    def _transcribe_file(self, filepath: str) -> Optional[str]:
+        """Transcribe a WAV file using Groq Whisper."""
+        try:
+            from groq import Groq
+            api_key = config.GROQ_API_KEY
+            if not api_key:
+                print("[VoiceAssistant] GROQ_API_KEY not found in config!")
+                return None
+            
+            client = Groq(api_key=api_key)
+            with open(filepath, "rb") as audio_file:
+                transcription = client.audio.transcriptions.create(
+                    file=(filepath, audio_file.read()),
+                    model="whisper-large-v3",
+                    language="ar"
+                )
+            text = transcription.text.strip()
+            return text
+        except Exception as e:
+            print(f"[VoiceAssistant] Whisper transcription error: {e}")
+            return None
+
+    def _listen_loop(self):
+        use_arecord = (platform.system() == 'Linux' and shutil.which("arecord"))
+        if use_arecord:
+            print("[VoiceAssistant] Starting arecord-based listen loop (direct ALSA USB plughw:1,0)...")
+            while not self._stop_listening.is_set():
+                try:
+                    if self.is_speaking:
+                        time.sleep(0.2)
+                        continue
+                    
+                    # Record 5-second segments
+                    wav_path = self._record_arecord(duration=5)
+                    if not wav_path:
+                        time.sleep(0.2)
+                        continue
+                    
+                    # Check again if we've been stopped or if assistant is speaking
+                    if self._stop_listening.is_set() or self.is_speaking:
+                        try: os.unlink(wav_path)
+                        except: pass
+                        continue
+                    
+                    text = self._transcribe_file(wav_path)
+                    try: os.unlink(wav_path)
+                    except: pass
+                    
+                    if text:
+                        print(f"[VoiceAssistant] Transcribed via Whisper: {text}")
+                        self._process_command(text)
+                except Exception as e:
+                    print(f"[VoiceAssistant] Error in arecord listen loop: {e}")
+                    time.sleep(1)
+        else:
+            print("[VoiceAssistant] Fallback: Starting speech_recognition-based listen loop...")
+            try:
+                mic_kwargs = {'sample_rate': 44100, 'chunk_size': 4096}
+                if self._mic_device_index is not None:
+                    mic_kwargs['device_index'] = self._mic_device_index
+                with sr.Microphone(**mic_kwargs) as source:
+                    self.recognizer.adjust_for_ambient_noise(source, duration=1)
+                    while not self._stop_listening.is_set():
+                        try:
+                            if self.is_speaking:
+                                time.sleep(0.1)
+                                continue
+                            audio = self.recognizer.listen(source, timeout=5, phrase_time_limit=10)
+                            text = self._transcribe_audio(audio)
+                            if text: self._process_command(text)
+                        except sr.WaitTimeoutError: continue
+                        except sr.UnknownValueError: continue
+                        except sr.RequestError: time.sleep(1)
+            except Exception as e:
+                print(f"[VoiceAssistant] Listen loop crashed: {e}")
+                import traceback
+                traceback.print_exc()
+                self.is_listening = False
 
     def _transcribe_audio(self, audio_data: sr.AudioData) -> Optional[str]:
         """Transcribe audio using Groq Whisper to avoid FLAC dependency and be faster."""
         try:
-            import tempfile
-            import os
-            from groq import Groq
-            
-            api_key = config.GROQ_API_KEY
-            if not api_key: return None
-            
-            client = Groq(api_key=api_key)
             wav_data = audio_data.get_wav_data()
             
             # Save to temporary file
@@ -310,15 +430,7 @@ class VoiceAssistant:
                 f.write(wav_data)
                 
             try:
-                # Transcribe with Whisper
-                with open(tmp_path, "rb") as audio_file:
-                    transcription = client.audio.transcriptions.create(
-                        file=(tmp_path, audio_file.read()),
-                        model="whisper-large-v3",
-                        language="ar"
-                    )
-                text = transcription.text.strip()
-                return text
+                return self._transcribe_file(tmp_path)
             finally:
                 # Cleanup
                 try: os.unlink(tmp_path)
@@ -329,17 +441,29 @@ class VoiceAssistant:
             return None
     
     def listen_once(self) -> Optional[str]:
-        if not SR_AVAILABLE: return None
-        try:
-            mic_kwargs = {'sample_rate': 44100, 'chunk_size': 4096}
-            if self._mic_device_index is not None:
-                mic_kwargs['device_index'] = self._mic_device_index
-            with sr.Microphone(**mic_kwargs) as source:
-                self.recognizer.adjust_for_ambient_noise(source, duration=0.5)
-                audio = self.recognizer.listen(source, timeout=10, phrase_time_limit=15)
-                return self._transcribe_audio(audio)
-        except:
-            return None
+        use_arecord = (platform.system() == 'Linux' and shutil.which("arecord"))
+        if use_arecord:
+            wav_path = self._record_arecord(duration=6)
+            if not wav_path:
+                return None
+            try:
+                text = self._transcribe_file(wav_path)
+                return text
+            finally:
+                try: os.unlink(wav_path)
+                except: pass
+        else:
+            if not SR_AVAILABLE: return None
+            try:
+                mic_kwargs = {'sample_rate': 44100, 'chunk_size': 4096}
+                if self._mic_device_index is not None:
+                    mic_kwargs['device_index'] = self._mic_device_index
+                with sr.Microphone(**mic_kwargs) as source:
+                    self.recognizer.adjust_for_ambient_noise(source, duration=0.5)
+                    audio = self.recognizer.listen(source, timeout=10, phrase_time_limit=15)
+                    return self._transcribe_audio(audio)
+            except:
+                return None
     
     def _process_command(self, text: str):
         if self.on_speech_callback: self.on_speech_callback(text)
