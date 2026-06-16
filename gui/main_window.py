@@ -89,13 +89,13 @@ class MainWindow(ctk.CTk):
         self.keyboard = None
         self._create_layout()
         
-        self.voice_permission_granted = config.VOICE_ENABLED
+        self.voice_permission_granted = True  # Start enabled until user responds to permission question
         
         self.after(100, self._start_services_async)
         
         self.show_screen("home")
         
-        self.after(1000, self._play_welcome)
+        self.after(1500, self._play_welcome)
         
         self.protocol("WM_DELETE_WINDOW", self._on_close)
         
@@ -300,7 +300,7 @@ class MainWindow(ctk.CTk):
         def run_init():
             self._start_monitoring()
             self._start_medication_reminder()
-            self._init_voice_assistant()
+            self._init_voice_assistant(start_listening=False)  # Don't start listening yet
             
         threading.Thread(target=run_init, daemon=True).start()
     
@@ -341,7 +341,7 @@ class MainWindow(ctk.CTk):
         current = self.attributes("-fullscreen")
         self.attributes("-fullscreen", not current)
     
-    def _init_voice_assistant(self):
+    def _init_voice_assistant(self, start_listening=True):
         voice_assistant.set_command_callback(self._on_voice_command)
         voice_assistant.set_speech_callback(self._on_voice_speech)
         
@@ -359,18 +359,38 @@ class MainWindow(ctk.CTk):
         voice_command_processor.set_callback("generate_qr", self._cmd_generate_qr)
         voice_command_processor.set_callback("open_browser", self._cmd_open_browser)
         
-        if self.voice_permission_granted:
+        if start_listening and self.voice_permission_granted:
             voice_assistant.set_voice_permission(True)
             voice_assistant.start_listening()
     
     def _play_welcome(self):
         import threading
         
+        # Show voice button as active from the start
+        self.sidebar.set_voice_state(True)
+        
         def welcome_flow():
+            # Speak welcome, then ask permission (loops until clear yes/no)
             voice_assistant.speak("مرحباً بكم. أنا المساعد الطبي الذكي، مصمم لتقديم خدمات الرعاية والمتابعة الصحية.")
-            voice_assistant.speak("هل تأذن لي بتفعيل المساعد الصوتي للتفاعل معكم؟")
+            
+            # ask_permission loops internally until clear yes/no
+            voice_assistant.ask_permission(
+                callback=lambda approved: self.after(0, lambda: self._on_voice_permission(approved))
+            )
         
         threading.Thread(target=welcome_flow, daemon=True).start()
+    
+    def _on_voice_permission(self, approved: bool):
+        """Handle voice permission response from user."""
+        self.voice_permission_granted = approved
+        voice_assistant.set_voice_permission(approved)
+        
+        if approved:
+            voice_assistant.start_listening()
+            self.sidebar.set_voice_state(True)
+        else:
+            voice_assistant.stop_listening()
+            self.sidebar.set_voice_state(False)
     
     def _on_voice_command(self, command: str, text: str):
         def process():
@@ -487,6 +507,9 @@ class MainWindow(ctk.CTk):
             voice_assistant.start_listening()
         else:
             voice_assistant.stop_listening()
+        
+        # Sync sidebar button state
+        self.sidebar.set_voice_state(enabled)
         
         return enabled
     

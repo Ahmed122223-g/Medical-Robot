@@ -49,10 +49,17 @@ class VoiceAssistant:
         self.listening_enabled = False
         self.is_listening = False
         self.is_speaking = False
+        self._speech_cooldown_until = 0  # timestamp until which mic stays muted after speech
+        self._speech_cooldown_seconds = 1.5  # seconds to wait after speech ends
         self.current_screen = "home"
         self.on_command_callback: Optional[Callable] = None
         self.on_speech_callback: Optional[Callable] = None
         self.recognizer = sr.Recognizer() if SR_AVAILABLE else None
+        if self.recognizer:
+            self.recognizer.energy_threshold = 1500  # Higher threshold to filter background noise
+            self.recognizer.dynamic_energy_threshold = True
+            self.recognizer.dynamic_energy_adjustment_damping = 0.15
+            self.recognizer.dynamic_energy_ratio = 2.0
         self.microphone = None
         # تم تحديد رقم المايك (1) بناءً على اختبار sounddevice 
         self._mic_device_index = 1
@@ -66,6 +73,7 @@ class VoiceAssistant:
         self._listen_thread = None
         self._stop_listening = threading.Event()
         self.elevenlabs_quota_exceeded = False
+        self._current_audio_process = None  # Track subprocess for Linux audio playback
         
         # Initialize Gemini for Speech Recognition
         self.gemini_model = None
@@ -134,7 +142,7 @@ class VoiceAssistant:
         cleaned_text = self._clean_text_for_speech(text)
         if not cleaned_text:
             return
-        self.is_speaking = True
+        self.is_speaking = True  # Set BEFORE starting speech
         def _speak():
             try:
                 if self.elevenlabs_client and not self.elevenlabs_quota_exceeded:
@@ -156,8 +164,44 @@ class VoiceAssistant:
                     pass
             finally:
                 self.is_speaking = False
+                # Set cooldown so mic stays muted for a bit after speech ends
+                self._speech_cooldown_until = time.time() + self._speech_cooldown_seconds
         if wait: _speak()
         else: threading.Thread(target=_speak, daemon=True).start()
+    
+    def stop_speaking(self):
+        """Immediately stop current speech playback (works on both Linux and Windows)."""
+        self.is_speaking = False
+        
+        # Kill Linux subprocess (ffplay/mpg123/aplay)
+        if self._current_audio_process is not None:
+            try:
+                self._current_audio_process.terminate()
+                try:
+                    self._current_audio_process.wait(timeout=1)
+                except:
+                    self._current_audio_process.kill()
+                self._current_audio_process = None
+            except Exception as e:
+                print(f"[VoiceAssistant] Error killing audio process: {e}")
+        
+        # Stop pygame (Windows fallback)
+        try:
+            if PYGAME_AVAILABLE and pygame.mixer.get_init():
+                pygame.mixer.music.stop()
+                try:
+                    pygame.mixer.music.unload()
+                except:
+                    pass
+        except Exception as e:
+            print(f"[VoiceAssistant] Error stopping pygame: {e}")
+        
+        # Set cooldown after stopping
+        self._speech_cooldown_until = time.time() + self._speech_cooldown_seconds
+    
+    def _is_in_cooldown(self):
+        """Check if we're still in post-speech cooldown period."""
+        return time.time() < self._speech_cooldown_until
     
     def _speak_elevenlabs(self, text: str):
         import requests as req
@@ -225,20 +269,23 @@ class VoiceAssistant:
         # On Linux (Raspberry Pi), native players avoid ALSA locking issues common with PyGame
         if system == 'Linux':
             try:
-                # Try ffplay (very reliable)
                 import shutil
+                cmd = None
                 if shutil.which("ffplay"):
-                    subprocess.run(["ffplay", "-nodisp", "-autoexit", "-loglevel", "quiet", filepath], check=True)
-                    return
-                # Try mpg123 as fallback for mp3
+                    cmd = ["ffplay", "-nodisp", "-autoexit", "-loglevel", "quiet", filepath]
                 elif shutil.which("mpg123"):
-                    subprocess.run(["mpg123", "-q", filepath], check=True)
-                    return
-                # Try aplay for wav
+                    cmd = ["mpg123", "-q", filepath]
                 elif filepath.endswith(".wav") and shutil.which("aplay"):
-                    subprocess.run(["aplay", "-q", filepath], check=True)
+                    cmd = ["aplay", "-q", filepath]
+                
+                if cmd:
+                    proc = subprocess.Popen(cmd)
+                    self._current_audio_process = proc
+                    proc.wait()  # Block until playback finishes
+                    self._current_audio_process = None
                     return
             except Exception as e:
+                self._current_audio_process = None
                 print(f"[Audio] Linux player failed, falling back to pygame: {e}")
 
         # Windows / Mac / Fallback
@@ -252,6 +299,9 @@ class VoiceAssistant:
             pygame.mixer.music.load(filepath)
             pygame.mixer.music.play()
             while pygame.mixer.music.get_busy(): 
+                if not self.is_speaking:  # Check if stop was requested
+                    pygame.mixer.music.stop()
+                    break
                 time.sleep(0.1)
             pygame.mixer.music.unload()
         except Exception as e:
@@ -404,19 +454,29 @@ class VoiceAssistant:
                     self.recognizer.adjust_for_ambient_noise(source, duration=1)
                     while not self._stop_listening.is_set():
                         try:
-                            if self.is_speaking:
-                                time.sleep(0.1)
+                            # Mute mic while bot is speaking or in cooldown
+                            if self.is_speaking or self._is_in_cooldown():
+                                time.sleep(0.3)
                                 continue
                             audio = self.recognizer.listen(source, timeout=5, phrase_time_limit=10)
+                            # Double-check: if bot started speaking while we were listening, discard
+                            if self.is_speaking or self._is_in_cooldown():
+                                continue
                             text = self._transcribe_audio(audio)
-                            if text: self._process_command(text)
+                            # Filter out noise: discard very short transcriptions
+                            if text and len(text.strip()) > 2:
+                                self._process_command(text)
                         except sr.WaitTimeoutError: continue
                         except sr.UnknownValueError: continue
                         except sr.RequestError: time.sleep(1)
+            except AttributeError as e:
+                if "PyAudio" in str(e):
+                    print("[VoiceAssistant] PyAudio not installed - microphone listening disabled. App will continue without voice input.")
+                else:
+                    print(f"[VoiceAssistant] Listen loop crashed: {e}")
+                self.is_listening = False
             except Exception as e:
                 print(f"[VoiceAssistant] Listen loop crashed: {e}")
-                import traceback
-                traceback.print_exc()
                 self.is_listening = False
 
     def _transcribe_audio(self, audio_data: sr.AudioData) -> Optional[str]:
@@ -459,7 +519,7 @@ class VoiceAssistant:
                 if self._mic_device_index is not None:
                     mic_kwargs['device_index'] = self._mic_device_index
                 with sr.Microphone(**mic_kwargs) as source:
-                    self.recognizer.adjust_for_ambient_noise(source, duration=0.5)
+                    self.recognizer.adjust_for_ambient_noise(source, duration=1.5)
                     audio = self.recognizer.listen(source, timeout=10, phrase_time_limit=15)
                     return self._transcribe_audio(audio)
             except:
@@ -476,20 +536,50 @@ class VoiceAssistant:
         self.speak("مرحباً بكم. أنا المساعد الطبي الذكي، مصمم لتقديم خدمات الرعاية والمتابعة الصحية.")
     
     def ask_permission(self, callback=None):
-        self.speak("هل تأذن لي بتفعيل المساعد الصوتي للتفاعل معكم؟")
-        response = self.listen_once()
-        if response:
-            if any(word in response.lower() for word in ["نعم", "اوك", "موافق", "تمام", "ايوه", "اه", "تفضل", "مقبول"]):
-                self.set_voice_permission(True)
+        accept_words = ["نعم", "اوك", "موافق", "تمام", "ايوه", "اه", "تفضل", 
+                       "مقبول", "اكيد", "طبعا", "بالتأكيد", "يلا", "ماشي",
+                       "yes", "ok", "okay", "sure", "yeah"]
+        reject_words = ["لا", "لأ", "مش موافق", "غير موافق", "ارفض", "مرفوض",
+                       "no", "nope", "cancel"]
+        
+        max_attempts = 3
+        
+        for attempt in range(max_attempts):
+            if attempt == 0:
+                self.speak("هل تأذن لي بتفعيل المساعد الصوتي للتفاعل معكم؟ قل موافق أو غير موافق.")
+            else:
+                self.speak("من فضلك قل موافق لتفعيل الصوت، أو غير موافق لإيقافه.")
+            
+            # Wait for speech echo to fully die down before listening
+            time.sleep(3)
+            
+            response = self.listen_once()
+            if not response:
+                print(f"[VoiceAssistant] Permission attempt {attempt+1}: no response heard")
+                continue
+            
+            response_lower = response.lower().strip()
+            print(f"[VoiceAssistant] Permission attempt {attempt+1}: '{response}'")
+            
+            # Check for clear accept
+            if any(word in response_lower for word in accept_words):
                 self.speak("شكراً لكم. المساعد الصوتي نشط الآن وجاهز للاستخدام.")
                 if callback: callback(True)
                 return True
-            else:
-                self.set_voice_permission(False)
-                self.speak("تم التعطيل. يمكنك تفعيل المساعد الصوتي في أي وقت عبر الإعدادات.")
+            
+            # Check for clear reject
+            if any(word in response_lower for word in reject_words):
+                self.speak("حسناً. يمكنك تفعيل المساعد الصوتي في أي وقت من القائمة الجانبية.")
                 if callback: callback(False)
                 return False
-        return None
+            
+            # Unclear response - ignore and retry
+            print(f"[VoiceAssistant] Unclear response '{response}', ignoring...")
+        
+        # Max attempts reached with no clear answer - default to disabled
+        self.speak("لم أتلقى رداً واضحاً. سيتم إيقاف المساعد الصوتي. يمكنك تفعيله من القائمة الجانبية.")
+        if callback: callback(False)
+        return False
     
     def test(self): return True
 

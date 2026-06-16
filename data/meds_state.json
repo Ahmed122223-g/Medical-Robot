@@ -1,5 +1,5 @@
 {
-    "last_reset_date": "2026-06-06",
+    "last_reset_date": "2026-06-16",
     "medications": {
         "Glucophage XR 1000mg": {
             "taken_today": false,
@@ -30,7 +30,7 @@
             "calculation_sugar": null
         },
         "Aspirin Protect 100mg": {
-            "taken_today": true,
+            "taken_today": false,
             "last_taken": "2026-06-06T14:06:02.996574",
             "is_active": true,
             "calculated_dose": null,
@@ -40,8 +40,8 @@
             "taken_today": false,
             "last_taken": null,
             "is_active": true,
-            "calculated_dose": 24691376,
-            "calculation_sugar": 1234567890
+            "calculated_dose": 20,
+            "calculation_sugar": 125
         }
     }
 }

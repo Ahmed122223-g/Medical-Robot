@@ -71,6 +71,7 @@ class ChatScreen(ctk.CTkFrame):
         
         self.app = app_controller
         self.is_waiting_response = False
+        self._bot_is_speaking = False
         self._last_w = 0
         self._last_h = 0
         
@@ -93,6 +94,7 @@ class ChatScreen(ctk.CTkFrame):
         self.title_label.configure(font=r.font(base_size=18, weight="bold"))
         self.clear_btn.configure(font=r.font(base_size=10), height=r.size(28), width=r.size(100))
         self.send_btn.configure(font=r.font_ar(base_size=16), width=r.size(50), height=r.size(38))
+        self.stop_btn.configure(font=r.font_ar(base_size=14), width=r.size(50), height=r.size(38))
         self.message_entry.configure(font=r.font(base_size=12), height=r.size(38))
         self.med_btn.configure(font=r.font_ar(base_size=14), width=r.size(35), height=r.size(35))
     
@@ -173,6 +175,20 @@ class ChatScreen(ctk.CTkFrame):
             command=self._send_message
         )
         self.send_btn.pack(side="right", padx=(r.pad(4), 0))
+        
+        # Stop Speech button - hidden by default, shown when bot is speaking
+        self.stop_btn = ctk.CTkButton(
+            self.input_container,
+            text="🔇",
+            font=r.font_ar(base_size=14),
+            width=r.size(50),
+            height=r.size(38),
+            fg_color=COLORS["danger"],
+            hover_color="#b91c1c",
+            corner_radius=RADIUS["md"],
+            command=self._stop_speech
+        )
+        # Don't pack yet - will be shown when bot speaks
         
         self.med_btn = ctk.CTkButton(
             self.input_container,
@@ -279,9 +295,11 @@ class ChatScreen(ctk.CTkFrame):
         
         # Translate response to Arabic and speak it
         def speak_async():
+            self.after(0, self._show_stop_button)
             arabic_response = chatbot.translate_to_arabic(response)
             from modules.voice_assistant import voice_assistant
-            voice_assistant.speak(arabic_response, wait=False)
+            voice_assistant.speak(arabic_response, wait=True)
+            self.after(0, self._hide_stop_button)
             
         threading.Thread(target=speak_async, daemon=True).start()
     
@@ -290,9 +308,11 @@ class ChatScreen(ctk.CTkFrame):
         self._add_message(reminder, is_user=False)
         
         def speak_async():
+            self.after(0, self._show_stop_button)
             arabic_reminder = chatbot.translate_to_arabic(reminder)
             from modules.voice_assistant import voice_assistant
-            voice_assistant.speak(arabic_reminder, wait=False)
+            voice_assistant.speak(arabic_reminder, wait=True)
+            self.after(0, self._hide_stop_button)
             
         threading.Thread(target=speak_async, daemon=True).start()
     
@@ -305,7 +325,14 @@ class ChatScreen(ctk.CTkFrame):
         self._show_greeting()
     
     def on_hide(self):
-        pass
+        # Stop any ongoing speech when leaving chat
+        try:
+            from modules.voice_assistant import voice_assistant
+            if voice_assistant.is_speaking:
+                voice_assistant.stop_speaking()
+            self._hide_stop_button()
+        except:
+            pass
     
     def on_show(self):
         self.message_entry.focus()
@@ -360,7 +387,30 @@ class ChatScreen(ctk.CTkFrame):
         
         if speak_response:
             def speak_async():
+                self.after(0, self._show_stop_button)
                 arabic_response = chatbot.translate_to_arabic(response)
                 from modules.voice_assistant import voice_assistant
-                voice_assistant.speak(arabic_response, wait=False)
+                voice_assistant.speak(arabic_response, wait=True)
+                self.after(0, self._hide_stop_button)
             threading.Thread(target=speak_async, daemon=True).start()
+    
+    def _stop_speech(self):
+        """Stop the bot from speaking immediately."""
+        try:
+            from modules.voice_assistant import voice_assistant
+            voice_assistant.stop_speaking()
+        except:
+            pass
+        self._hide_stop_button()
+    
+    def _show_stop_button(self):
+        """Show the stop speech button and hide send button."""
+        self._bot_is_speaking = True
+        self.send_btn.pack_forget()
+        self.stop_btn.pack(side="right", padx=(responsive.pad(4), 0))
+    
+    def _hide_stop_button(self):
+        """Hide the stop speech button and show send button."""
+        self._bot_is_speaking = False
+        self.stop_btn.pack_forget()
+        self.send_btn.pack(side="right", padx=(responsive.pad(4), 0))

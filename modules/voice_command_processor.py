@@ -56,6 +56,30 @@ class VoiceCommandProcessor:
     
     def process_command(self, text: str) -> Optional[str]:
         if not text or not text.strip(): return None
+        text = text.strip()
+        
+        # Filter out noise and Whisper hallucinations
+        if len(text) < 5: return None  # Too short to be meaningful
+        
+        # Common Whisper hallucination phrases (noise artifacts)
+        noise_phrases = [
+            "شكرا", "شكراً", "شكرا لك", "شكراً لك", "شكرا لكم",
+            "مرحبا", "مرحباً", "السلام عليكم",
+            "thank you", "thanks", "you", "bye", "okay",
+            "...", "ممم", "آآآ", "اه", "هم",
+            "أعوذ بالله", "بسم الله", "سبحان الله",
+            "music", "موسيقى", "♪",
+        ]
+        text_lower = text.lower().strip()
+        if text_lower in [p.lower() for p in noise_phrases]:
+            print(f"[VoiceCommand] Filtered noise: '{text}'")
+            return None
+        
+        # Filter text that's only punctuation/symbols
+        import re
+        cleaned = re.sub(r'[^\w\u0600-\u06FF]', '', text)
+        if len(cleaned) < 3: return None
+        
         if self.context.state == CommandState.CHAT_MODE: return self._handle_chat(text)
         elif self.context.state == CommandState.FOOD_SCREEN: return self._handle_food_screen(text)
         else: return self._handle_new_command(text)

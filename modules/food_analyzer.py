@@ -417,11 +417,10 @@ class FoodAnalyzer:
     def _is_unknown_food(self, result: FoodAnalysisResult) -> bool:
         """Check if the result indicates unknown food."""
         unknown_phrases = [
-            "غير معروف", "لا أستطيع", "غير واضح", "لا يمكن",
             "unknown", "not identified", "cannot identify", "can't identify",
             "unidentified", "not clear", "unclear"
         ]
-        name = (result.food_name + " " + result.food_name_ar).lower()
+        name = (result.food_name or "").lower()
         return any(phrase in name for phrase in unknown_phrases)
     
     def _retry_simple(self, image: Image.Image) -> Optional[FoodAnalysisResult]:
