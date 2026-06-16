@@ -56,13 +56,20 @@ class VoiceAssistant:
         self.on_speech_callback: Optional[Callable] = None
         self.recognizer = sr.Recognizer() if SR_AVAILABLE else None
         if self.recognizer:
-            self.recognizer.energy_threshold = 1500  # Higher threshold to filter background noise
-            self.recognizer.dynamic_energy_threshold = True
-            self.recognizer.dynamic_energy_adjustment_damping = 0.15
-            self.recognizer.dynamic_energy_ratio = 2.0
+            self.recognizer.energy_threshold = 1200  # Good base sensitivity floor
+            self.recognizer.dynamic_energy_threshold = False  # Keep threshold stable during recording
+            self.recognizer.pause_threshold = 2.0  # Wait for 2.0s of silence before ending speech
         self.microphone = None
-        # تم تحديد رقم المايك (1) بناءً على اختبار sounddevice 
-        self._mic_device_index = 1
+        
+        # Try to find USB mic index first
+        self._mic_device_index = self._find_usb_mic_index()
+        # Fallback: on Linux (Raspberry Pi), if no USB mic detected, default to index 1. On Windows/macOS, default to None.
+        if self._mic_device_index is None:
+            if platform.system() == 'Linux':
+                self._mic_device_index = 1
+            else:
+                self._mic_device_index = None
+                
         self.elevenlabs_client = None
         if ELEVENLABS_AVAILABLE and self.api_key:
             try:
@@ -72,8 +79,14 @@ class VoiceAssistant:
         self.voice_id = self.ARABIC_VOICE_IDS["female"]
         self._listen_thread = None
         self._stop_listening = threading.Event()
+        self._listen_lock = threading.Lock()
         self.elevenlabs_quota_exceeded = False
         self._current_audio_process = None  # Track subprocess for Linux audio playback
+        
+        # Speech start/stop time tracking for echo/overlap detection
+        self._last_speech_start_time = 0.0
+        self._last_speech_stop_time = 0.0
+
         
         # Initialize Gemini for Speech Recognition
         self.gemini_model = None
@@ -99,6 +112,13 @@ class VoiceAssistant:
         except Exception as e:
             print(f"[VoiceAssistant] Error detecting USB mic: {e}")
         return None
+    
+    def _audio_overlaps_speech(self, start_time: float, end_time: float) -> bool:
+        """Check if the recorded audio interval overlaps with bot speech or cooldown."""
+        mute_start = self._last_speech_start_time
+        mute_end = time.time() + 9999.0 if self.is_speaking else (self._last_speech_stop_time + self._speech_cooldown_seconds)
+        return (start_time <= mute_end) and (mute_start <= end_time)
+
     
     def set_voice_permission(self, allowed: bool):
         self.listening_enabled = allowed
@@ -143,6 +163,7 @@ class VoiceAssistant:
         if not cleaned_text:
             return
         self.is_speaking = True  # Set BEFORE starting speech
+        self._last_speech_start_time = time.time()  # Track speech start time
         def _speak():
             try:
                 if self.elevenlabs_client and not self.elevenlabs_quota_exceeded:
@@ -164,6 +185,7 @@ class VoiceAssistant:
                     pass
             finally:
                 self.is_speaking = False
+                self._last_speech_stop_time = time.time()  # Track speech stop time
                 # Set cooldown so mic stays muted for a bit after speech ends
                 self._speech_cooldown_until = time.time() + self._speech_cooldown_seconds
         if wait: _speak()
@@ -172,6 +194,7 @@ class VoiceAssistant:
     def stop_speaking(self):
         """Immediately stop current speech playback (works on both Linux and Windows)."""
         self.is_speaking = False
+        self._last_speech_stop_time = time.time()  # Track speech stop time
         
         # Kill Linux subprocess (ffplay/mpg123/aplay)
         if self._current_audio_process is not None:
@@ -310,15 +333,25 @@ class VoiceAssistant:
             except: pass
     
     def start_listening(self):
-        if not SR_AVAILABLE or not self.listening_enabled or self.is_listening: return
-        self.is_listening = True
-        self._stop_listening.clear()
-        self._listen_thread = threading.Thread(target=self._listen_loop, daemon=True)
-        self._listen_thread.start()
+        if not SR_AVAILABLE or not self.listening_enabled: return
+        
+        with self._listen_lock:
+            # Prevent spawning multiple concurrent thread loops
+            if self._listen_thread and self._listen_thread.is_alive():
+                print("[VoiceAssistant] Listen thread is already running or stopping. Reusing it.")
+                self._stop_listening.clear()
+                self.is_listening = True
+                return
+                
+            self.is_listening = True
+            self._stop_listening.clear()
+            self._listen_thread = threading.Thread(target=self._listen_loop, daemon=True)
+            self._listen_thread.start()
     
     def stop_listening(self):
-        self._stop_listening.set()
-        self.is_listening = False
+        with self._listen_lock:
+            self._stop_listening.set()
+            self.is_listening = False
     
     def _record_arecord(self, duration: int) -> Optional[str]:
         """Record using arecord directly via ALSA - bypasses PulseAudio completely."""
@@ -391,7 +424,7 @@ class VoiceAssistant:
             return None
 
     def _transcribe_file(self, filepath: str) -> Optional[str]:
-        """Transcribe a WAV file using Groq Whisper."""
+        """Transcribe a WAV file using Groq Whisper with custom vocabulary guidance prompt."""
         try:
             from groq import Groq
             api_key = config.GROQ_API_KEY
@@ -399,12 +432,16 @@ class VoiceAssistant:
                 print("[VoiceAssistant] GROQ_API_KEY not found in config!")
                 return None
             
+            # Guides Whisper to transcribe custom vocabulary and dialects correctly
+            guide_prompt = "موافق، غير موافق، أسباب نقص فيتامين دال، المساعد الطبي الذكي، قياس السكر، تحليل الطعام، الصفحة الرئيسية، خروج، نعم، لا، تمام، تفضل"
+            
             client = Groq(api_key=api_key)
             with open(filepath, "rb") as audio_file:
                 transcription = client.audio.transcriptions.create(
                     file=(filepath, audio_file.read()),
                     model="whisper-large-v3",
-                    language="ar"
+                    language="ar",
+                    prompt=guide_prompt
                 )
             text = transcription.text.strip()
             return text
@@ -412,24 +449,152 @@ class VoiceAssistant:
             print(f"[VoiceAssistant] Whisper transcription error: {e}")
             return None
 
+    def _is_silence(self, audio_data: sr.AudioData, threshold: float = 350.0) -> bool:
+        """Check if the recorded audio is silent/noise based on RMS amplitude."""
+        try:
+            raw_data = audio_data.frame_data
+            if not raw_data:
+                return True
+                
+            # If sample width is 2 bytes (16-bit PCM)
+            if audio_data.sample_width == 2:
+                count = len(raw_data) // 2
+                if count == 0:
+                    return True
+                
+                # Sample a maximum of 10000 points to keep calculations fast and efficient
+                step = max(1, count // 10000)
+                samples = []
+                import struct
+                for i in range(0, count, step):
+                    val, = struct.unpack("<h", raw_data[i*2 : i*2+2])
+                    samples.append(val)
+                
+                if not samples:
+                    return True
+                    
+                sum_squares = sum(s * s for s in samples)
+                rms = (sum_squares / len(samples)) ** 0.5
+                print(f"[VoiceAssistant] Audio analysis: RMS volume = {rms:.1f} (threshold = {threshold})")
+                return rms < threshold
+        except Exception as e:
+            print(f"[VoiceAssistant] Error analyzing audio volume: {e}")
+        return False
+
+    def _is_wav_file_silence(self, filepath: str, threshold: float = 350.0) -> bool:
+        """Check if a WAV file is silent/noise based on RMS amplitude."""
+        try:
+            if not os.path.exists(filepath):
+                return True
+            with open(filepath, "rb") as f:
+                f.read(44)  # Skip WAV header (44 bytes)
+                raw_data = f.read()
+            
+            if not raw_data:
+                return True
+                
+            count = len(raw_data) // 2
+            if count == 0:
+                return True
+                
+            step = max(1, count // 10000)
+            samples = []
+            import struct
+            for i in range(0, count, step):
+                val, = struct.unpack("<h", raw_data[i*2 : i*2+2])
+                samples.append(val)
+                
+            if not samples:
+                return True
+                
+            sum_squares = sum(s * s for s in samples)
+            rms = (sum_squares / len(samples)) ** 0.5
+            print(f"[VoiceAssistant] arecord analysis: RMS volume = {rms:.1f} (threshold = {threshold})")
+            return rms < threshold
+        except Exception as e:
+            print(f"[VoiceAssistant] Error analyzing WAV file volume: {e}")
+        return False
+
+    def _get_working_microphone(self) -> Optional[sr.Microphone]:
+        """Try to initialize sr.Microphone. If it fails, scan for other available indices."""
+        if not SR_AVAILABLE:
+            return None
+            
+        # 1. Try the configured device index first
+        try:
+            # Using 16000Hz standard sample rate for high compatibility and Whisper speed
+            mic_kwargs = {'sample_rate': 16000, 'chunk_size': 1024}
+            if self._mic_device_index is not None:
+                mic_kwargs['device_index'] = self._mic_device_index
+            mic = sr.Microphone(**mic_kwargs)
+            with mic as source:
+                pass
+            return mic
+        except Exception as e:
+            print(f"[VoiceAssistant] Failed to open microphone with index {self._mic_device_index}: {e}")
+            
+        # 2. Try default (None) if configured failed and is not None
+        if self._mic_device_index is not None:
+            try:
+                print("[VoiceAssistant] Trying system default microphone (device_index=None)...")
+                mic = sr.Microphone(sample_rate=16000, chunk_size=1024)
+                with mic as source:
+                    pass
+                self._mic_device_index = None
+                return mic
+            except Exception as ex:
+                print(f"[VoiceAssistant] Failed to open default microphone: {ex}")
+                
+        # 3. Loop through all available microphone indices
+        try:
+            mic_names = sr.Microphone.list_microphone_names()
+            print(f"[VoiceAssistant] Searching for any working microphone among {len(mic_names)} devices...")
+            for idx in range(len(mic_names)):
+                if idx == self._mic_device_index:
+                    continue
+                try:
+                    mic = sr.Microphone(device_index=idx, sample_rate=16000, chunk_size=1024)
+                    with mic as source:
+                        pass
+                    print(f"[VoiceAssistant] Found working microphone '{mic_names[idx]}' at index {idx}")
+                    self._mic_device_index = idx
+                    return mic
+                except Exception:
+                    continue
+        except Exception as ex:
+            print(f"[VoiceAssistant] Error listing microphones: {ex}")
+            
+        return None
+
     def _listen_loop(self):
         use_arecord = (platform.system() == 'Linux' and shutil.which("arecord"))
         if use_arecord:
             print("[VoiceAssistant] Starting arecord-based listen loop (direct ALSA USB plughw:1,0)...")
             while not self._stop_listening.is_set():
                 try:
-                    if self.is_speaking:
+                    if self.is_speaking or self._is_in_cooldown():
                         time.sleep(0.2)
                         continue
                     
                     # Record 5-second segments
+                    listen_start = time.time()
                     wav_path = self._record_arecord(duration=5)
+                    listen_end = time.time()
+                    
                     if not wav_path:
                         time.sleep(0.2)
                         continue
                     
-                    # Check again if we've been stopped or if assistant is speaking
-                    if self._stop_listening.is_set() or self.is_speaking:
+                    # Check for overlap with speech or cooldown
+                    if self._audio_overlaps_speech(listen_start, listen_end):
+                        print("[VoiceAssistant] arecord audio discarded due to overlap with speech/cooldown.")
+                        try: os.unlink(wav_path)
+                        except: pass
+                        continue
+                    
+                    # RMS silence filter for Linux WAV recording
+                    if self._is_wav_file_silence(wav_path, threshold=350.0):
+                        print("[VoiceAssistant] arecord audio discarded as silence.")
                         try: os.unlink(wav_path)
                         except: pass
                         continue
@@ -444,45 +609,72 @@ class VoiceAssistant:
                 except Exception as e:
                     print(f"[VoiceAssistant] Error in arecord listen loop: {e}")
                     time.sleep(1)
+            self.is_listening = False
         else:
-            print("[VoiceAssistant] Fallback: Starting speech_recognition-based listen loop...")
-            try:
-                mic_kwargs = {'sample_rate': 44100, 'chunk_size': 4096}
-                if self._mic_device_index is not None:
-                    mic_kwargs['device_index'] = self._mic_device_index
-                with sr.Microphone(**mic_kwargs) as source:
-                    self.recognizer.adjust_for_ambient_noise(source, duration=1)
-                    while not self._stop_listening.is_set():
-                        try:
-                            # Mute mic while bot is speaking or in cooldown
-                            if self.is_speaking or self._is_in_cooldown():
-                                time.sleep(0.3)
+            print(f"[VoiceAssistant] Fallback: Starting speech_recognition-based listen loop (device_index={self._mic_device_index})...")
+            
+            while not self._stop_listening.is_set():
+                try:
+                    mic = self._get_working_microphone()
+                    if not mic:
+                        print("[VoiceAssistant] No working microphone found. Stopping listen loop.")
+                        break
+                        
+                    with mic as source:
+                        self.recognizer.adjust_for_ambient_noise(source, duration=1)
+                        if self.recognizer.energy_threshold < 1200:
+                            self.recognizer.energy_threshold = 1200
+                        print(f"[VoiceAssistant] Calibration complete. Energy threshold set to: {self.recognizer.energy_threshold}")
+                        
+                        while not self._stop_listening.is_set():
+                            try:
+                                # Mute mic while bot is speaking or in cooldown
+                                if self.is_speaking or self._is_in_cooldown():
+                                    time.sleep(0.3)
+                                    continue
+                                
+                                listen_start = time.time()
+                                audio = self.recognizer.listen(source, timeout=5, phrase_time_limit=20)
+                                listen_end = time.time()
+                                
+                                # Check for overlap with speech or cooldown
+                                if self._audio_overlaps_speech(listen_start, listen_end):
+                                    print("[VoiceAssistant] Audio discarded due to overlap with speech/cooldown.")
+                                    continue
+                                
+                                # RMS silence filter to prevent Whisper silence-hallucinations
+                                if self._is_silence(audio, threshold=350.0):
+                                    print("[VoiceAssistant] Audio discarded as silence.")
+                                    continue
+                                    
+                                text = self._transcribe_audio(audio)
+                                # Filter out noise: discard very short transcriptions
+                                if text and len(text.strip()) > 2:
+                                    print(f"[VoiceAssistant] Transcribed via Whisper (fallback): '{text}'")
+                                    self._process_command(text)
+                            except sr.WaitTimeoutError:
                                 continue
-                            audio = self.recognizer.listen(source, timeout=5, phrase_time_limit=10)
-                            # Double-check: if bot started speaking while we were listening, discard
-                            if self.is_speaking or self._is_in_cooldown():
+                            except sr.UnknownValueError:
                                 continue
-                            text = self._transcribe_audio(audio)
-                            # Filter out noise: discard very short transcriptions
-                            if text and len(text.strip()) > 2:
-                                self._process_command(text)
-                        except sr.WaitTimeoutError: continue
-                        except sr.UnknownValueError: continue
-                        except sr.RequestError: time.sleep(1)
-            except AttributeError as e:
-                if "PyAudio" in str(e):
-                    print("[VoiceAssistant] PyAudio not installed - microphone listening disabled. App will continue without voice input.")
-                else:
-                    print(f"[VoiceAssistant] Listen loop crashed: {e}")
-                self.is_listening = False
-            except Exception as e:
-                print(f"[VoiceAssistant] Listen loop crashed: {e}")
-                self.is_listening = False
+                            except sr.RequestError:
+                                time.sleep(1)
+                except AttributeError as e:
+                    if "PyAudio" in str(e):
+                        print("[VoiceAssistant] PyAudio not installed - microphone listening disabled. App will continue without voice input.")
+                    else:
+                        print(f"[VoiceAssistant] Listen loop crashed: {e}")
+                    break
+                except Exception as e:
+                    print(f"[VoiceAssistant] Listen loop error: {e}")
+                    time.sleep(1)
+            
+            self.is_listening = False
 
     def _transcribe_audio(self, audio_data: sr.AudioData) -> Optional[str]:
         """Transcribe audio using Groq Whisper to avoid FLAC dependency and be faster."""
         try:
-            wav_data = audio_data.get_wav_data()
+            # Enforce 16000Hz 16-bit mono PCM conversion for compatibility
+            wav_data = audio_data.get_wav_data(convert_rate=16000, convert_width=2)
             
             # Save to temporary file
             tmp_path = os.path.join(tempfile.gettempdir(), f"audio_{int(time.time()*1000)}.wav")
@@ -507,6 +699,8 @@ class VoiceAssistant:
             if not wav_path:
                 return None
             try:
+                if self._is_wav_file_silence(wav_path, threshold=350.0):
+                    return None
                 text = self._transcribe_file(wav_path)
                 return text
             finally:
@@ -515,14 +709,27 @@ class VoiceAssistant:
         else:
             if not SR_AVAILABLE: return None
             try:
-                mic_kwargs = {'sample_rate': 44100, 'chunk_size': 4096}
-                if self._mic_device_index is not None:
-                    mic_kwargs['device_index'] = self._mic_device_index
-                with sr.Microphone(**mic_kwargs) as source:
-                    self.recognizer.adjust_for_ambient_noise(source, duration=1.5)
-                    audio = self.recognizer.listen(source, timeout=10, phrase_time_limit=15)
+                mic = self._get_working_microphone()
+                if not mic:
+                    print("[VoiceAssistant] listen_once: No working microphone found.")
+                    return None
+                    
+                with mic as source:
+                    print(f"[VoiceAssistant] listen_once: opening mic with device_index={self._mic_device_index}")
+                    # Bypass calibration to prevent cutting off the start of the user's speech
+                    self.recognizer.energy_threshold = 1200
+                    print(f"[VoiceAssistant] listen_once: energy_threshold set to {self.recognizer.energy_threshold}, listening...")
+                    audio = self.recognizer.listen(source, timeout=10, phrase_time_limit=20)
+                    print("[VoiceAssistant] listen_once: audio captured, transcribing...")
+                    
+                    # RMS silence filter
+                    if self._is_silence(audio, threshold=350.0):
+                        print("[VoiceAssistant] listen_once: audio discarded as silence.")
+                        return None
+                        
                     return self._transcribe_audio(audio)
-            except:
+            except Exception as e:
+                print(f"[VoiceAssistant] Error in listen_once: {e}")
                 return None
     
     def _process_command(self, text: str):
@@ -550,28 +757,29 @@ class VoiceAssistant:
             else:
                 self.speak("من فضلك قل موافق لتفعيل الصوت، أو غير موافق لإيقافه.")
             
-            # Wait for speech echo to fully die down before listening
-            time.sleep(3)
+            # Wait a tiny fraction of a second for audio device transition
+            time.sleep(0.2)
             
+            print(f"[VoiceAssistant] Permission attempt {attempt+1}: opening microphone to listen...")
             response = self.listen_once()
             if not response:
                 print(f"[VoiceAssistant] Permission attempt {attempt+1}: no response heard")
                 continue
             
             response_lower = response.lower().strip()
-            print(f"[VoiceAssistant] Permission attempt {attempt+1}: '{response}'")
+            print(f"[VoiceAssistant] Permission attempt {attempt+1} heard: '{response}'")
             
-            # Check for clear accept
-            if any(word in response_lower for word in accept_words):
-                self.speak("شكراً لكم. المساعد الصوتي نشط الآن وجاهز للاستخدام.")
-                if callback: callback(True)
-                return True
-            
-            # Check for clear reject
+            # Check for clear reject FIRST to prevent "غير موافق" matching "موافق"
             if any(word in response_lower for word in reject_words):
                 self.speak("حسناً. يمكنك تفعيل المساعد الصوتي في أي وقت من القائمة الجانبية.")
                 if callback: callback(False)
                 return False
+                
+            # Check for clear accept SECOND
+            if any(word in response_lower for word in accept_words):
+                self.speak("شكراً لكم. المساعد الصوتي نشط الآن وجاهز للاستخدام.")
+                if callback: callback(True)
+                return True
             
             # Unclear response - ignore and retry
             print(f"[VoiceAssistant] Unclear response '{response}', ignoring...")

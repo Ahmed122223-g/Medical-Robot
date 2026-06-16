@@ -296,7 +296,9 @@ class ChatScreen(ctk.CTkFrame):
         # Translate response to Arabic and speak it
         def speak_async():
             self.after(0, self._show_stop_button)
+            print(f"[ChatScreen] Translating chatbot English response to Arabic: '{response[:100]}...'")
             arabic_response = chatbot.translate_to_arabic(response)
+            print(f"[ChatScreen] Arabic translation for speech: '{arabic_response}'")
             from modules.voice_assistant import voice_assistant
             voice_assistant.speak(arabic_response, wait=True)
             self.after(0, self._hide_stop_button)
@@ -309,7 +311,9 @@ class ChatScreen(ctk.CTkFrame):
         
         def speak_async():
             self.after(0, self._show_stop_button)
+            print(f"[ChatScreen] Translating medication reminder to Arabic: '{reminder[:100]}...'")
             arabic_reminder = chatbot.translate_to_arabic(reminder)
+            print(f"[ChatScreen] Arabic reminder translation for speech: '{arabic_reminder}'")
             from modules.voice_assistant import voice_assistant
             voice_assistant.speak(arabic_reminder, wait=True)
             self.after(0, self._hide_stop_button)
@@ -347,8 +351,10 @@ class ChatScreen(ctk.CTkFrame):
         
         # Translate Arabic voice input to English text
         def process_async():
+            print(f"[ChatScreen] Processing voice input (Arabic transcription): '{text}'")
             has_arabic = any('\u0600' <= char <= '\u06FF' for char in text)
             english_text = chatbot.translate_to_english(text) if has_arabic else text
+            print(f"[ChatScreen] Translated voice input to English: '{english_text}'")
             self.after(0, lambda: self._update_entry_and_send(english_text, auto_send, speak_response))
             
         threading.Thread(target=process_async, daemon=True).start()
@@ -388,7 +394,9 @@ class ChatScreen(ctk.CTkFrame):
         if speak_response:
             def speak_async():
                 self.after(0, self._show_stop_button)
+                print(f"[ChatScreen] Translating chatbot English response to Arabic (voice): '{response[:100]}...'")
                 arabic_response = chatbot.translate_to_arabic(response)
+                print(f"[ChatScreen] Arabic translation for speech: '{arabic_response}'")
                 from modules.voice_assistant import voice_assistant
                 voice_assistant.speak(arabic_response, wait=True)
                 self.after(0, self._hide_stop_button)

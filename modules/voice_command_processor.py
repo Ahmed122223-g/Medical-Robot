@@ -58,27 +58,40 @@ class VoiceCommandProcessor:
         if not text or not text.strip(): return None
         text = text.strip()
         
-        # Filter out noise and Whisper hallucinations
-        if len(text) < 5: return None  # Too short to be meaningful
+        # Clean text from all punctuation and symbols for comparison
+        import re
+        normalized = re.sub(r'[^\w\s\u0600-\u06FF]', '', text).strip().lower()
         
-        # Common Whisper hallucination phrases (noise artifacts)
-        noise_phrases = [
-            "شكرا", "شكراً", "شكرا لك", "شكراً لك", "شكرا لكم",
-            "مرحبا", "مرحباً", "السلام عليكم",
-            "thank you", "thanks", "you", "bye", "okay",
-            "...", "ممم", "آآآ", "اه", "هم",
-            "أعوذ بالله", "بسم الله", "سبحان الله",
-            "music", "موسيقى", "♪",
-        ]
-        text_lower = text.lower().strip()
-        if text_lower in [p.lower() for p in noise_phrases]:
-            print(f"[VoiceCommand] Filtered noise: '{text}'")
+        # Remove diacritics (Tashkeel) from Arabic text for clean matching
+        normalized = re.sub(r'[\u064B-\u0652]', '', normalized)
+        
+        # Common Whisper hallucinations in Arabic and English (exact match after normalization)
+        noise_phrases = {
+            # Arabic hallucinations
+            "شكرا", "شكرا لك", "شكرا لكم", "شكرا جزيلا", "شكرا جزيلا لك", "شكر", "شكرا لك على المشاهدة",
+            "مرحبا", "مرحبا بك", "السلام عليكم", "السلام عليكم ورحمة الله", "السلام عليكم ورحمة الله وبركاته",
+            "بسم الله", "بسم الله الرحمن الرحيم", "الحمد لله", "الحمد لله رب العالمين",
+            "أعوذ بالله من الشيطان الرجيم", "سبحان الله", "لا إله إلا الله", "أستغفر الله",
+            "يا رب", "اللهم", "آمين", "تفرغ", "شاهد", "شاهد أيضا", "شاهد الفيديو",
+            "تابعونا", "تابعونا على", "الاشتراك", "اشترك في القناة", "قناة", "فيديو",
+            "ام بي سي", "عربي", "سوري", "مصر", "أنا", "هو", "هي", "تم", "لقد تم", "وبسم الله الرحمن الرحيم",
+            
+            # English hallucinations
+            "thank you", "thanks", "thank you very much", "thank you for watching",
+            "hello", "hi", "welcome", "bye", "goodbye", "okay", "ok", "yes", "no",
+            "please", "excuse me", "sorry", "you", "me", "we", "they", "he", "she", "it",
+            "music", "lyrics", "subtitles", "subtitle", "translated by", "captioninged by",
+            "amara", "org", "co", "com", "www", "http", "https", "...", "ممم", "آآآ", "اه", "هم",
+        }
+        
+        if normalized in noise_phrases:
+            print(f"[VoiceCommand] Filtered noise/hallucination: '{text}' (normalized: '{normalized}')")
             return None
         
-        # Filter text that's only punctuation/symbols
-        import re
+        # Filter text that's only punctuation/symbols or too short to prevent nonsense
         cleaned = re.sub(r'[^\w\u0600-\u06FF]', '', text)
-        if len(cleaned) < 3: return None
+        if len(cleaned) < 2: 
+            return None
         
         if self.context.state == CommandState.CHAT_MODE: return self._handle_chat(text)
         elif self.context.state == CommandState.FOOD_SCREEN: return self._handle_food_screen(text)

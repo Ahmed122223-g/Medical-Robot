@@ -50,9 +50,19 @@ class Chatbot:
         self.history: list[Message] = []
         self.patient_info = patient_info or PatientInfo()
         self._lock = threading.Lock()
+        self.gemini_model = None
         self._initialize()
     
     def _initialize(self):
+        # Initialize Gemini for translation offloading
+        if config.GEMINI_API_KEY:
+            try:
+                import google.generativeai as genai
+                genai.configure(api_key=config.GEMINI_API_KEY)
+                self.gemini_model = genai.GenerativeModel(config.GEMINI_MODEL or 'gemini-2.0-flash')
+            except Exception as e:
+                print(f"[Chatbot] Error initializing Gemini: {e}")
+                
         if not GROQ_AVAILABLE or not self.api_key:
             return
         try:
@@ -68,31 +78,52 @@ class Chatbot:
         medications_str = "\n".join([f"• {med}" for med in self.patient_info.medications])
         return f"""
 You are an intelligent AI Medical Robot Assistant, speaking in a highly professional, polite, and formal academic manner suitable for a graduation project presentation.
-The patient's name is {self.patient_info.name} and they are {self.patient_info.age} years old.
 
-Patient's health conditions: {conditions_str}
-
-Patient's current medications:
+Only if the user explicitly asks about the patient's specific health profile, patient name, age, or their personal medications/reminders, refer to the following Patient Profile:
+<patient_profile>
+Name: {self.patient_info.name}
+Age: {self.patient_info.age}
+Health Conditions: {conditions_str}
+Medications & Schedule:
 {medications_str}
+</patient_profile>
+
+If the user's query is general (such as general knowledge, cooking recipes, math, coding, simple chit-chat, greetings, or explanations of medical concepts in general), you MUST answer it directly and objectively. Under NO circumstances should you mention the patient's name, age, conditions, or medications. For example, if asked how to make a dish (like macaroni / pasta) or how a virus works, explain it directly and do not say anything about the patient's diabetes, heart conditions, or medications.
 
 Style instructions:
 1. Speak in a highly professional, polite, respectful, and formal academic tone. Do not use personal names like "Dr. Maryam" or refer to yourself as a human doctor.
 2. Be highly accurate and answer patient questions with detailed, clear, and scientifically sound medical explanations.
 3. Maintain professional standards and professional empathy.
-4. Keep your responses organized with lists or bullet points if needed.
-5. Provide valuable, detailed, and accurate health information.
-6. CRITICAL: You MUST write your response entirely in English. Do NOT output any Arabic text.
+4. General Conversation: While your primary role is a medical assistant, you must gladly engage in conversation on ANY topic (small talk, jokes, general knowledge, explanations outside medicine, cooking recipes, etc.) when asked. Never say you can only discuss medical issues. Maintain the same professional and friendly demeanor for all topics.
+5. CRITICAL: Do NOT mention the patient's name, age, health conditions, or medications unless the user's query is explicitly about the patient, their health, or their medication schedule. For general queries (e.g., general knowledge, recipes, simple greetings, or methods), answer the query directly and do NOT reference the patient's medical details.
+6. Keep your responses organized with lists or bullet points if needed.
+7. Provide valuable, detailed, and accurate information.
+8. CRITICAL: You MUST write your response entirely in English. Do NOT output any Arabic text.
 """
     
     def translate_to_english(self, text: str) -> str:
-        """Translate Arabic text to English using Groq."""
+        """Translate Arabic text to English using Gemini (fallback to Groq)."""
+        if self.gemini_model:
+            try:
+                prompt = (
+                    "You are an expert translator specializing in translating Arabic "
+                    "(including dialects like Egyptian Arabic and slang) to English. "
+                    "Translate the following text to natural, accurate English. "
+                    "Output only the direct English translation. Do not write explanations, notes, or anything else.\n\n"
+                    f"Text to translate: {text}"
+                )
+                response = self.gemini_model.generate_content(prompt)
+                return response.text.strip().strip('"').strip()
+            except Exception as e:
+                print(f"[Chatbot] Gemini translation to English failed: {e}, falling back to Groq...")
+
         if not self.client:
             return text
         try:
             response = self.client.chat.completions.create(
                 model=self.model_name,
                 messages=[
-                    {"role": "system", "content": "Translate the following Arabic text to English. Output only the English translation. Do not write explanations or anything else."},
+                    {"role": "system", "content": "You are an expert translator specializing in translating Arabic (including dialects like Egyptian Arabic and slang) to English. Translate the following text to natural, accurate English. Output only the direct English translation. Do not write explanations, notes, or anything else."},
                     {"role": "user", "content": text}
                 ],
                 max_tokens=250,
@@ -104,14 +135,29 @@ Style instructions:
             return text
 
     def translate_to_arabic(self, text: str) -> str:
-        """Translate English response to formal Arabic for speech."""
+        """Translate English response to formal Arabic for speech using Gemini (fallback to Groq)."""
+        if self.gemini_model:
+            try:
+                prompt = (
+                    "You are an expert translator. Translate the following English text "
+                    "(which could be a medical explanation, general conversation, reply, or small talk) "
+                    "to highly formal, professional Arabic (Standard Arabic / Fusha) suitable for a "
+                    "professional academic presentation. Avoid any colloquial phrases, personal names, "
+                    "or calling the assistant a doctor. Output only the Arabic translation. Do not write English explanations or anything else.\n\n"
+                    f"Text to translate: {text}"
+                )
+                response = self.gemini_model.generate_content(prompt)
+                return response.text.strip().strip('"').strip()
+            except Exception as e:
+                print(f"[Chatbot] Gemini translation to Arabic failed: {e}, falling back to Groq...")
+
         if not self.client:
             return text
         try:
             response = self.client.chat.completions.create(
                 model=self.model_name,
                 messages=[
-                    {"role": "system", "content": "Translate the following English medical explanation to highly formal, professional Arabic (Standard Arabic / Fusha) suitable for a professional academic presentation. Avoid any colloquial phrases, personal names, or calling the assistant a doctor. Output only the Arabic translation. Do not write English explanations or anything else."},
+                    {"role": "system", "content": "You are an expert translator. Translate the following English text (which could be a medical explanation, general conversation, reply, or small talk) to highly formal, professional Arabic (Standard Arabic / Fusha) suitable for a professional academic presentation. Avoid any colloquial phrases, personal names, or calling the assistant a doctor. Output only the Arabic translation. Do not write English explanations or anything else."},
                     {"role": "user", "content": text}
                 ],
                 max_tokens=400,
@@ -166,8 +212,7 @@ Please let me know how I can be of assistance.
     
     def clear_history(self):
         self.history.clear()
-        if hasattr(self, 'model') and self.model:
-            self.chat = self.model.start_chat(history=[])
+        self._initialize()
     
     def update_patient_info(self, patient_info: PatientInfo):
         self.patient_info = patient_info
