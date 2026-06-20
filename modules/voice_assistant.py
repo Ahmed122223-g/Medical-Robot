@@ -276,10 +276,13 @@ class VoiceAssistant:
                 ps_command = f'Add-Type -AssemblyName System.Speech; $synth = New-Object System.Speech.Synthesis.SpeechSynthesizer; $synth.Rate = 0; $synth.Speak("{safe_text}")'
                 subprocess.run(["powershell", "-Command", ps_command], capture_output=True, text=True, timeout=60)
             elif system == 'Linux':
-                voice_lang = "ar" if has_arabic else "en"
+                voice_lang = "mb-ar1" if has_arabic else "en"
                 result = subprocess.run(["espeak", "-v", voice_lang, text], capture_output=True, text=True, timeout=30)
                 if result.returncode != 0 and has_arabic:
-                    subprocess.run(["espeak", translate(text)], capture_output=True, text=True, timeout=30)
+                    # Fallback to standard Arabic if mb-ar1 fails, before translating
+                    result_fallback = subprocess.run(["espeak", "-v", "ar", text], capture_output=True, text=True, timeout=30)
+                    if result_fallback.returncode != 0:
+                        subprocess.run(["espeak", translate(text)], capture_output=True, text=True, timeout=30)
         except:
             raise
     
