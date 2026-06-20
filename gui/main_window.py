@@ -514,10 +514,25 @@ class MainWindow(ctk.CTk):
         return enabled
     
     def _on_close(self):
-        voice_assistant.stop_listening()
-        vital_signs_monitor.stop_monitoring()
-        medication_reminder.stop_scheduler()
-        self.destroy()
+        try:
+            voice_assistant.stop_speaking()
+            voice_assistant.stop_listening()
+            vital_signs_monitor.stop_monitoring()
+            medication_reminder.stop_scheduler()
+            
+            if self.current_screen == "food" and "food" in self.screens:
+                if hasattr(self.screens["food"], "_stop_camera"):
+                    self.screens["food"]._stop_camera()
+        except Exception:
+            pass
+            
+        try:
+            self.destroy()
+        except Exception:
+            pass
+            
+        import os
+        os._exit(0)
     
     def show_alert(self, title: str, message: str, alert_type: str = "info", action_text: str = None, action_callback = None):
         r = responsive

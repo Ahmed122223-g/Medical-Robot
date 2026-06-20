@@ -1,5 +1,5 @@
 {
-    "last_reset_date": "2026-06-16",
+    "last_reset_date": "2026-06-20",
     "medications": {
         "Glucophage XR 1000mg": {
             "taken_today": false,
@@ -10,7 +10,7 @@
         },
         "Concor 5mg": {
             "taken_today": false,
-            "last_taken": "2026-04-21T08:28:05.772257",
+            "last_taken": "2026-06-16T08:00:08.655194",
             "is_active": true,
             "calculated_dose": null,
             "calculation_sugar": null
@@ -40,8 +40,8 @@
             "taken_today": false,
             "last_taken": null,
             "is_active": true,
-            "calculated_dose": 20,
-            "calculation_sugar": 125
+            "calculated_dose": null,
+            "calculation_sugar": null
         }
     }
 }
