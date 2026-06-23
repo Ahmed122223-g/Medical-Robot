@@ -107,17 +107,17 @@ class MedicationReminder:
     def _load_medications(self):
         self.medications = [
             Medication(name="Glucophage XR 1000mg", generic_name="Metformin HCl", dose="1 tablet",
-                       timing="After dinner", purpose="Blood sugar regulation", schedule_times=["21:00"]),
+                       timing="After dinner", purpose="Blood sugar regulation", schedule_times=["10:00"]),
             Medication(name="Concor 5mg", generic_name="Bisoprolol", dose="1 tablet",
-                       timing="Morning", purpose="Heart rate regulation", schedule_times=["08:00"]),
+                       timing="Morning", purpose="Heart rate regulation", schedule_times=["10:30"]),
             Medication(name="Zestril 10mg", generic_name="Lisinopril", dose="1 tablet",
-                       timing="Evening", purpose="Blood pressure treatment", schedule_times=["20:00"]),
+                       timing="Evening", purpose="Blood pressure treatment", schedule_times=["11:00"]),
             Medication(name="Ator 20mg", generic_name="Atorvastatin", dose="1 tablet",
-                       timing="Before bed", purpose="Cholesterol lowering", schedule_times=["22:00"]),
+                       timing="Before bed", purpose="Cholesterol lowering", schedule_times=["11:30"]),
             Medication(name="Aspirin Protect 100mg", generic_name="Acetylsalicylic Acid", dose="1 tablet",
-                       timing="After lunch", purpose="Blood thinning", schedule_times=["14:00"]),
+                       timing="After lunch", purpose="Blood thinning", schedule_times=["12:00"]),
             Medication(name="Lantus SoloStar", generic_name="Insulin Glargine", dose="20 units subcutaneous",
-                       timing="Before bed", purpose="Long-acting insulin", schedule_times=["22:30"],
+                       timing="Before bed", purpose="Long-acting insulin", schedule_times=["12:30"],
                        is_injection=True, storage_notes="Refrigerate (2-8°C)"),
         ]
         self._load_state()

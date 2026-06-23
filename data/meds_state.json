@@ -40,8 +40,8 @@
             "taken_today": false,
             "last_taken": null,
             "is_active": true,
-            "calculated_dose": null,
-            "calculation_sugar": null
+            "calculated_dose": 21,
+            "calculation_sugar": 150
         }
     }
 }
